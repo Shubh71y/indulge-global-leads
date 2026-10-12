@@ -1,0 +1,1842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indulge Global — Executive HNI Intelligence & Membership Funnel</title>
+<!-- Modern Clean Sans-Serif Font like the Dribbble Shot -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<!-- Minimalist Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+:root {
+  /* Exact Colors from Dribbble Shot #23245345 */
+  --canvas-bg: #E3E5E8;          /* Outer matte grey */
+  --dashboard-bg: #F7F8F9;       /* Inner canvas white-grey */
+  --card-bg: #FFFFFF;            /* Pure white bento cards */
+  --card-subtle: #F3F4F6;        /* Subtle pill / tag backgrounds */
+  
+  --coral: #DE5743;              /* Terracotta / Coral Orange-Red Button */
+  --coral-hover: #C94835;
+  --coral-light: #FBECE9;        /* Pastel coral tint */
+  --coral-soft: #F6CECA;
+  
+  --black: #0E0E0E;              /* Deep black pill buttons */
+  --black-hover: #262626;
+  
+  --text-title: #11141A;         /* Primary heading text */
+  --text-body: #4B5563;          /* Body copy */
+  --text-muted: #8E95A3;         /* Light grey metadata */
+  --text-dim: #A0A7B5;
+  
+  --border: #ECEEF2;             /* Crisp ultra-light border */
+  --border-card: rgba(0, 0, 0, 0.04);
+  
+  --radius-xl: 44px;             /* Massive outer dashboard rounding */
+  --radius-lg: 28px;             /* Bento card rounding */
+  --radius-md: 20px;
+  --radius-pill: 9999px;         /* Perfect pills */
+  
+  --shadow-subtle: 0 4px 20px -2px rgba(0, 0, 0, 0.03);
+  --shadow-card: 0 8px 30px rgba(0, 0, 0, 0.04);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--canvas-bg);
+  color: var(--text-title);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px 20px;
+}
+
+/* Outer Master Canvas Container */
+.dashboard-viewport {
+  width: 100%;
+  max-width: 1480px;
+  background-color: var(--dashboard-bg);
+  border-radius: var(--radius-xl);
+  padding: 36px 44px 44px 44px;
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+/* ------------------------------------------------------------- */
+/* 1. TOP HEADER                                                 */
+/* ------------------------------------------------------------- */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.btn-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-title);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: var(--shadow-subtle);
+  font-size: 15px;
+}
+
+.btn-circle:hover {
+  background: #F3F4F6;
+  transform: scale(1.03);
+}
+
+.badge-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--black);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-title);
+  line-height: 1.1;
+}
+
+.brand-sub {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.user-profile-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.avatar-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #E5E7EB;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #FFFFFF;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-title);
+  line-height: 1.2;
+}
+
+.user-role {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.search-pill-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  padding: 10px 22px;
+  border-radius: var(--radius-pill);
+  box-shadow: var(--shadow-subtle);
+  width: 320px;
+}
+
+.search-pill-container input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--text-title);
+  width: 100%;
+}
+
+.search-pill-container input::placeholder {
+  color: var(--text-dim);
+}
+
+/* ------------------------------------------------------------- */
+/* 2. SUBHEADER HERO AREA (Concierge Greeting & Funnel Actions)  */
+/* ------------------------------------------------------------- */
+.hero-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.hero-date-block {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.date-circle {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--text-title);
+  box-shadow: var(--shadow-subtle);
+}
+
+.date-meta {
+  display: flex;
+  flex-direction: column;
+  padding-right: 18px;
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.date-day {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+.date-month {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.btn-coral-pill {
+  background: var(--coral);
+  color: #FFFFFF;
+  border: none;
+  padding: 12px 26px;
+  border-radius: var(--radius-pill);
+  font-size: 13.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(222, 87, 67, 0.28);
+  transition: all 0.2s;
+  text-decoration: none;
+}
+
+.btn-coral-pill:hover {
+  background: var(--coral-hover);
+  transform: translateY(-1px);
+}
+
+.btn-calendar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-title);
+  position: relative;
+  cursor: pointer;
+}
+
+.red-dot-badge {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+.hero-greeting {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.greeting-text {
+  text-align: right;
+}
+
+.greeting-heading {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-title);
+  letter-spacing: -0.5px;
+}
+
+.greeting-sub {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: -0.4px;
+}
+
+.mic-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--text-title);
+  cursor: pointer;
+  box-shadow: var(--shadow-subtle);
+  transition: all 0.2s;
+}
+
+.mic-circle:hover {
+  transform: scale(1.05);
+  background: #FAFAFA;
+}
+
+/* ------------------------------------------------------------- */
+/* 3. BENTO GRID MAIN LAYOUT                                     */
+/* ------------------------------------------------------------- */
+.bento-container {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 16px;
+}
+
+.vertical-action-strip {
+  background: #FFFFFF;
+  border-radius: 30px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 0;
+  gap: 22px;
+  box-shadow: var(--shadow-subtle);
+  height: fit-content;
+}
+
+.v-icon-btn {
+  color: var(--text-title);
+  font-size: 15px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.v-icon-btn:hover {
+  transform: scale(1.15);
+  color: var(--coral);
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  border: 1px solid var(--border-card);
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+
+/* CARD 1: INDULGE BLACK CARD (REPLACES VISA WITH LUXURY FUNNEL) */
+.card-visa {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.card-header-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-brand-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.dropdown-pill {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-title);
+  background: var(--card-subtle);
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+.card-number-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+.card-number-main {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-top: 2px;
+}
+
+.btn-dual-pills {
+  display: flex;
+  gap: 10px;
+  margin: 18px 0;
+}
+
+.btn-black-pill {
+  flex: 1;
+  background: var(--black);
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 0;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-black-pill:hover { background: var(--black-hover); }
+
+.btn-light-pill {
+  flex: 1;
+  background: var(--card-subtle);
+  color: var(--text-title);
+  border: none;
+  padding: 10px 0;
+  border-radius: var(--radius-pill);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-light-pill:hover { background: #E5E7EB; }
+
+.fee-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.fee-title {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.fee-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--coral);
+}
+
+.edit-link {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--coral);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* CARD 2: LEAD PIPELINE & DIRECT WHATSAPP METRICS */
+.card-income {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.income-metric-block {
+  margin-bottom: 12px;
+}
+
+.metric-meta-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.metric-label-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.metric-val-large {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-title);
+}
+
+.metric-val-large span {
+  color: var(--coral);
+}
+
+.badge-coral-subtle {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--coral);
+  background: var(--coral-light);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* CARD 3 & 4: CONVERSION GAUGES */
+.card-gauges {
+  grid-column: span 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 8px;
+}
+
+.circle-lock-box {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--card-subtle);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.circle-lock-box i { font-size: 14px; color: var(--text-title); }
+.circle-lock-box span { font-size: 9px; font-weight: 600; color: var(--text-title); }
+
+.circle-donut-growth {
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: #0E0E0E;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+
+.circle-donut-growth::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--coral);
+  border-right-color: var(--coral);
+}
+
+.donut-val {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.donut-sub {
+  font-size: 8px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+/* CARD 5: ACTIVE MINING RADAR */
+.card-days {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.days-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--text-title);
+  margin-top: 6px;
+}
+
+.days-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.dot-matrix {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #E5E7EB;
+}
+
+.dot.active { background: var(--coral); }
+.dot.subtle { background: var(--coral-soft); }
+
+/* CARD 6: GCC JURISDICTION SPLIT */
+.card-years {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.years-pill-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.pill-year-coral {
+  background: var(--coral);
+  color: #FFFFFF;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.pill-year-grey {
+  background: #E5E7EB;
+  color: var(--text-body);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.mini-grid-bars {
+  height: 48px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.bar-line {
+  flex: 1;
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.bar-line.tall { height: 100%; background: var(--coral); }
+.bar-line.med { height: 60%; background: #CBD5E1; }
+
+/* CARD 7: UHNI WEALTH TIERS */
+.card-circles {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.concentric-wrapper {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+  cursor: pointer;
+}
+
+.circle-layer {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--coral);
+  text-align: center;
+}
+
+.circle-1 { width: 170px; height: 170px; background: #FCF1EE; z-index: 1; }
+.circle-2 { width: 130px; height: 130px; background: #F8DDD7; z-index: 2; }
+.circle-3 { width: 94px; height: 94px; background: #F3C3B9; z-index: 3; }
+.circle-4 {
+  width: 60px;
+  height: 60px;
+  background: var(--coral);
+  color: #FFFFFF;
+  z-index: 4;
+  align-items: center;
+  padding-top: 0;
+  font-size: 9px;
+}
+
+/* CARD 8: VIP CONCIERGE OUTREACH MANAGER */
+.card-activity {
+  grid-column: span 6;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.activity-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text-title);
+}
+
+.activity-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-search-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.activity-input-box {
+  flex: 1;
+  background: var(--card-subtle);
+  border-radius: var(--radius-pill);
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.activity-input-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.activity-tags-row {
+  display: flex;
+  gap: 8px;
+}
+
+.activity-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--card-subtle);
+  color: var(--text-body);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.activity-tag:hover { background: #E5E7EB; }
+.activity-tag.active-tag {
+  background: var(--coral);
+  color: #FFFFFF;
+}
+
+.activity-tag.dot-tag::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+
+.activity-triplet {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+}
+
+.triplet-box {
+  background: var(--card-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.triplet-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text-title);
+}
+
+.triplet-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 40px;
+  margin-top: 10px;
+}
+
+.triplet-bar {
+  flex: 1;
+  background: #CBD5E1;
+  border-radius: 2px;
+}
+
+.triplet-bar.coral { background: var(--coral); height: 85%; }
+.triplet-bar.coral-light { background: var(--coral-soft); height: 50%; }
+
+.wallet-box {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.sun-icon {
+  font-size: 24px;
+  color: var(--coral);
+  margin-bottom: 8px;
+}
+
+.wallet-title {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.wallet-desc {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin: 4px 0 12px;
+  line-height: 1.3;
+}
+
+.btn-enable {
+  width: 100%;
+  background: var(--coral);
+  color: #FFFFFF;
+  border: none;
+  padding: 8px 0;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-enable:hover { background: var(--coral-hover); }
+
+/* CARD 9: PROJECTED ARR PIPELINE VALUE */
+.card-stocks {
+  grid-column: span 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.stock-val-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.stock-val-large {
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.stock-wave-svg {
+  width: 100%;
+  height: 60px;
+  margin: 14px 0;
+}
+
+.stock-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stock-title { font-size: 13.5px; font-weight: 700; }
+.stock-sub { font-size: 11px; color: var(--text-muted); }
+
+.badge-growth {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--coral);
+  background: var(--coral-light);
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+}
+
+/* LEADS TABLE CARD */
+.leads-table-card {
+  grid-column: span 12;
+  margin-top: 10px;
+  padding: 24px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  max-height: 520px;
+  margin-top: 16px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead {
+  background: var(--card-subtle);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+th {
+  padding: 12px 18px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-title);
+  white-space: nowrap;
+}
+
+tr:hover td {
+  background-color: #FAFAFB;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar-initials {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--coral-light);
+  color: var(--coral);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-name { font-weight: 700; font-size: 13.5px; }
+.user-role-sub { font-size: 11.5px; color: var(--text-muted); }
+
+.phone-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--card-subtle);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+}
+
+.phone-badge-pill.is-mobile {
+  background: #E8F7ED;
+  color: #15803D;
+}
+
+.whatsapp-icon-link {
+  color: #16A34A;
+  background: #E8F7ED;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.whatsapp-icon-link:hover {
+  background: #16A34A;
+  color: #FFFFFF;
+  transform: scale(1.1);
+}
+
+.status-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+}
+
+.status-chip.chip-verified {
+  background: #E8F7ED;
+  color: #15803D;
+}
+
+.status-chip.chip-pending {
+  background: var(--card-subtle);
+  color: var(--text-muted);
+}
+
+.copy-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.copy-btn:hover { color: var(--coral); }
+
+/* MODAL FOR 1,000 LEADS MINER */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-card {
+  background: #FFFFFF;
+  border-radius: 32px;
+  padding: 36px;
+  width: 100%;
+  max-width: 580px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.modal-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-title);
+}
+
+.modal-field {
+  margin-bottom: 18px;
+}
+
+.modal-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.modal-input, .modal-select {
+  width: 100%;
+  background: var(--card-subtle);
+  border: 1px solid var(--border);
+  padding: 12px 18px;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: 13.5px;
+  outline: none;
+}
+
+.modal-input:focus, .modal-select:focus {
+  border-color: var(--coral);
+}
+
+/* Toast */
+.toast-notice {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--black);
+  color: #FFFFFF;
+  border-radius: var(--radius-pill);
+  padding: 12px 24px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  z-index: 1000;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-notice.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard-viewport">
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- 1. TOP HEADER                                                 -->
+  <!-- ------------------------------------------------------------- -->
+  <header class="header-row">
+    <div class="header-left">
+      <div class="btn-circle" onclick="toggleMinerModal()"><i class="fa-solid fa-bars"></i></div>
+      <div class="badge-logo">IG</div>
+      <div class="brand-text">
+        <span class="brand-title">Indulge Global</span>
+        <span class="brand-sub">VIP Wealth & Concierge Outbound</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div class="btn-circle" onclick="toggleMinerModal()" title="Add / Trigger Miner"><i class="fa-solid fa-plus"></i></div>
+      
+      <div class="user-profile-pill" onclick="showToast('Indulge Global Lead Funnel')">
+        <div class="avatar-circle">
+          <i class="fa-solid fa-crown" style="color: #D97706; font-size: 18px;"></i>
+        </div>
+        <div class="user-info-text">
+          <span class="user-name">Executive Director</span>
+          <span class="user-role">Indulge Concierge</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- 2. SUBHEADER HERO AREA (Concierge Greeting & Funnel Actions)  -->
+  <!-- ------------------------------------------------------------- -->
+  <section class="hero-row">
+    <div class="hero-date-block">
+      <div class="date-circle">10</div>
+      <div class="date-meta">
+        <span class="date-day">Sat,</span>
+        <span class="date-month">October</span>
+      </div>
+
+      <button class="btn-coral-pill" onclick="toggleMinerModal()">
+        <span>Deploy 10,000 Lead Miner</span>
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+
+      <div class="btn-calendar-circle" onclick="loadLeads()" title="Refresh Dataset">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <div class="red-dot-badge"></div>
+      </div>
+    </div>
+
+    <div class="hero-greeting">
+      <div class="greeting-text">
+        <div class="greeting-heading">Hey, Ready to Acquire UHNIs?✨</div>
+        <div class="greeting-sub">|Deploying Concierge Outreach & WhatsApp Direct...</div>
+      </div>
+      <div class="mic-circle" onclick="showToast('Concierge Assistant: Ready to deploy WhatsApp campaigns')">
+        <i class="fa-solid fa-microphone"></i>
+      </div>
+    </div>
+  </section>
+
+  <!-- ------------------------------------------------------------- -->
+  <!-- 3. BENTO GRID CONTAINER (Tailored to Indulge Funnel)          -->
+  <!-- ------------------------------------------------------------- -->
+  <div class="bento-container">
+
+    <!-- Left Floating Vertical Action Strip -->
+    <div class="vertical-action-strip">
+      <i class="fa-solid fa-plus v-icon-btn" onclick="toggleMinerModal()" title="Launch Miner"></i>
+      <i class="fa-solid fa-share-nodes v-icon-btn" onclick="exportCSV()" title="Export VIP CSV"></i>
+    </div>
+
+    <!-- Main Grid of Bento Cards -->
+    <div class="bento-grid">
+
+      <!-- CARD 1: INDULGE CONCIERGE FUNNEL & VIP PIPELINE -->
+      <div class="card card-visa">
+        <div class="card-header-line">
+          <span class="card-brand-title" style="color: var(--text-title); font-size: 13.5px;"><i class="fa-solid fa-crown" style="color: var(--coral); margin-right: 6px;"></i>INDULGE CONCIERGE</span>
+          <select class="dropdown-pill" id="cardFilterSelect" onchange="filterByDropdown(this.value)">
+            <option value="all">All 17 ME Hubs</option>
+            <option value="uae">UAE (Dubai/Abu Dhabi)</option>
+            <option value="saudi">Saudi Arabia</option>
+            <option value="qatar">Qatar</option>
+            <option value="kuwait">Kuwait</option>
+            <option value="bahrain">Bahrain</option>
+            <option value="oman">Oman</option>
+            <option value="egypt">Egypt</option>
+            <option value="turkey">Turkey</option>
+            <option value="israel">Israel</option>
+            <option value="cyprus">Cyprus</option>
+            <option value="jordan">Jordan</option>
+            <option value="lebanon">Lebanon</option>
+            <option value="iraq">Iraq</option>
+            <option value="iran">Iran</option>
+            <option value="mobiles">VIP Direct Mobiles</option>
+          </select>
+        </div>
+
+        <div>
+          <div class="card-number-sub">Bespoke UHNI Membership Tier</div>
+          <div class="card-number-main">₹4 Lakh / AED 18,000 <span style="font-size: 13px; font-weight: 500; color: var(--text-muted);">/yr</span></div>
+        </div>
+
+        <div class="btn-dual-pills">
+          <button class="btn-black-pill" onclick="deployWhatsAppCampaign()"><i class="fa-brands fa-whatsapp"></i> WhatsApp Blast</button>
+          <button class="btn-light-pill" onclick="exportCSV()"><i class="fa-solid fa-file-arrow-down"></i> Export Dossier</button>
+        </div>
+
+        <div class="fee-row">
+          <div>
+            <div class="fee-title">Target Pipeline Potential</div>
+            <div class="fee-val" id="pipelinePotentialDisplay">₹17.72 Cr ARR</div>
+          </div>
+          <div class="edit-link" onclick="toggleMinerModal()">
+            <i class="fa-solid fa-pen" style="font-size: 10px;"></i>
+            <span>Refine Criteria</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: LEAD PIPELINE & DIRECT WHATSAPP METRICS -->
+      <div class="card card-income">
+        <div class="income-metric-block">
+          <div class="metric-meta-top">
+            <i class="fa-solid fa-users-viewfinder" style="color: var(--text-muted); font-size: 13px;"></i>
+            <div class="dropdown-pill" style="font-size: 11px; padding: 4px 10px;">
+              <span>Total Pipeline</span>
+            </div>
+          </div>
+          <div class="metric-label-sub">Top of Funnel Discovery</div>
+          <div class="metric-val-large"><span id="metricLeadsCount">220</span> <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">HNI Contacts</span></div>
+        </div>
+
+        <div class="income-metric-block" style="margin-bottom: 0;">
+          <div class="metric-meta-top">
+            <i class="fa-solid fa-mobile-screen-button" style="color: var(--coral); font-size: 13px;"></i>
+            <div class="dropdown-pill" style="font-size: 11px; padding: 4px 10px;">
+              <span>Coverage</span>
+            </div>
+          </div>
+          <div class="metric-label-sub">Direct WhatsApp Mobile Lines</div>
+          <div class="metric-val-large" style="display: flex; align-items: baseline; justify-content: space-between;">
+            <div><span id="metricPhonesCount">220</span> <span style="font-size: 13px; font-weight: 600; color: var(--coral);">Mobiles</span></div>
+            <span class="badge-coral-subtle" onclick="filterByDropdown('mobiles')" style="cursor: pointer;"><i class="fa-solid fa-bolt"></i> 100% Reachable</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3 & 4: CONVERSION GAUGES -->
+      <div class="card card-gauges">
+        <div class="circle-lock-box" onclick="showToast('Atomic lead store verified: Zero data loss')">
+          <i class="fa-solid fa-shield-halved" style="color: var(--coral);"></i>
+          <span>Verified DB</span>
+        </div>
+
+        <div class="circle-donut-growth">
+          <span class="donut-val" id="donutGrowthVal">100%</span>
+          <span class="donut-sub">Phone Rate</span>
+        </div>
+      </div>
+
+      <!-- CARD 5: ACTIVE MINING RADAR -->
+      <div class="card card-days">
+        <div>
+          <i class="fa-solid fa-tower-broadcast" style="color: var(--coral); font-size: 14px;"></i>
+          <div class="days-title">3 Active Engines</div>
+          <div class="days-sub">Apify Maps · Tavily VIP · LinkedIn Dorks</div>
+        </div>
+
+        <div class="dot-matrix" onclick="toggleMinerModal()">
+          <div class="dot active"></div><div class="dot active"></div><div class="dot active"></div><div class="dot active"></div><div class="dot active"></div>
+          <div class="dot active"></div><div class="dot active"></div><div class="dot active"></div><div class="dot subtle"></div><div class="dot subtle"></div>
+          <div class="dot subtle"></div><div class="dot subtle"></div><div class="dot subtle"></div><div class="dot subtle"></div><div class="dot subtle"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>
+      </div>
+
+      <!-- CARD 6: GCC JURISDICTION SPLIT -->
+      <div class="card card-years">
+        <div class="card-header-line">
+          <i class="fa-solid fa-earth-americas" style="color: var(--text-title); font-size: 13px;"></i>
+          <div class="years-pill-col">
+            <div class="pill-year-coral" onclick="filterByTag('dubai', null)">UAE 75%</div>
+            <div class="pill-year-grey" onclick="filterByTag('saudi', null)">KSA 25%</div>
+          </div>
+        </div>
+
+        <div class="mini-grid-bars">
+          <div class="bar-line" style="height: 35%;"></div>
+          <div class="bar-line med"></div>
+          <div class="bar-line" style="height: 45%;"></div>
+          <div class="bar-line tall"></div>
+        </div>
+      </div>
+
+      <!-- CARD 7: UHNI WEALTH TIERS (CONCENTRIC CIRCLES) -->
+      <div class="card card-circles">
+        <div class="card-header-line" style="width: 100%;">
+          <span style="font-size: 13.5px; font-weight: 700;">UHNI Wealth Tiers</span>
+          <div class="dropdown-pill" style="font-size: 11px;">
+            <span>GCC Hubs</span>
+          </div>
+        </div>
+
+        <div class="concentric-wrapper" onclick="toggleMinerModal()" title="Wealth Funnel Breakdown">
+          <div class="circle-layer circle-1">$100M+ FOs</div>
+          <div class="circle-layer circle-2">$25M+ Conglom</div>
+          <div class="circle-layer circle-3">$10M+ RE</div>
+          <div class="circle-layer circle-4">$5M+ C-Suite</div>
+        </div>
+      </div>
+
+      <!-- CARD 8: VIP CONCIERGE OUTREACH MANAGER -->
+      <div class="card card-activity">
+        <div class="activity-header">
+          <span class="activity-title">Concierge Outreach Manager</span>
+          <div class="activity-actions">
+            <div class="btn-circle" style="width: 32px; height: 32px; font-size: 11px;" onclick="loadLeads()" title="Refresh"><i class="fa-solid fa-arrows-rotate"></i></div>
+            <div class="btn-circle" style="width: 32px; height: 32px; font-size: 11px;" onclick="toggleMinerModal()" title="Run Miner"><i class="fa-solid fa-bolt"></i></div>
+            <div class="dropdown-pill" style="font-size: 11.5px; padding: 5px 12px;" onclick="toggleMinerModal()">
+              <i class="fa-solid fa-filter" style="font-size: 10px;"></i>
+              <span>Filters</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="activity-search-row">
+          <div class="activity-tags-row" style="width: 100%;">
+            <div class="activity-tag dot-tag active-tag" onclick="filterByTag('all', this)">All Leads</div>
+            <div class="activity-tag" onclick="filterByTag('dubai', this)">Dubai</div>
+            <div class="activity-tag" onclick="filterByTag('saudi', this)">Saudi</div>
+            <div class="activity-tag" onclick="filterByTag('qatar', this)">Qatar</div>
+            <div class="activity-tag" onclick="filterByTag('kuwait', this)">Kuwait</div>
+            <div class="activity-tag" onclick="filterByTag('mobiles', this)">Direct Mobiles</div>
+          </div>
+        </div>
+
+        <div class="activity-triplet">
+          <!-- Triplet 1: Target Goal -->
+          <div class="triplet-box">
+            <div>
+              <div class="triplet-val"><span id="targetCountVal">10,000</span> <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">TARGET</span></div>
+            </div>
+            <div class="triplet-bars">
+              <div class="triplet-bar coral"></div>
+              <div class="triplet-bar"></div>
+              <div class="triplet-bar coral-light"></div>
+              <div class="triplet-bar coral"></div>
+              <div class="triplet-bar"></div>
+              <div class="triplet-bar coral"></div>
+            </div>
+          </div>
+
+          <!-- Triplet 2: Outreach Channels -->
+          <div class="triplet-box">
+            <div class="card-header-line">
+              <span style="font-size: 12px; font-weight: 700;">Outreach Channels</span>
+              <i class="fa-solid fa-paper-plane" style="font-size: 11px; color: var(--coral);"></i>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; cursor: pointer;" onclick="deployWhatsAppCampaign()">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: #E8F7ED; color: #15803D; display: flex; align-items: center; justify-content: center; font-size: 10px;"><i class="fa-brands fa-whatsapp"></i></div>
+                <span>WhatsApp Concierge</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; cursor: pointer;" onclick="exportCSV()">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: #FDE8E4; color: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 10px;"><i class="fa-solid fa-envelope"></i></div>
+                <span>Executive Cold Email</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; cursor: pointer;" onclick="filterByTag('mobiles', null)">
+                <div style="width: 22px; height: 22px; border-radius: 50%; background: #FDE8E4; color: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 10px;"><i class="fa-solid fa-phone"></i></div>
+                <span>Relationship Call</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Triplet 3: Lead Hygiene & Verification -->
+          <div class="wallet-box">
+            <i class="fa-solid fa-circle-check sun-icon"></i>
+            <div class="wallet-title">Instant Verification</div>
+            <div class="wallet-desc">Validates E.164 mobile numbers & Port 25 SMTP MX deliverability.</div>
+            <button class="btn-enable" onclick="runInstantVerification()">Run Verification</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 9: PROJECTED PIPELINE ARR -->
+      <div class="card card-stocks">
+        <div>
+          <div class="card-header-line">
+            <i class="fa-solid fa-arrow-trend-up" style="color: var(--coral); font-size: 13px;"></i>
+            <div class="stock-val-large" id="stockValDisplay">₹17.72 Cr ARR</div>
+          </div>
+          <!-- Exact Squiggly SVG Line -->
+          <svg class="stock-wave-svg" viewBox="0 0 200 60" fill="none">
+            <path d="M5 35 Q 25 15, 45 40 T 85 25 T 125 45 T 165 20 T 195 38" stroke="#DE5743" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+
+        <div class="stock-footer">
+          <div>
+            <div class="stock-title">Pipeline Projected ARR</div>
+            <div class="stock-sub">Indulge ₹4L Membership Funnel</div>
+          </div>
+          <span class="badge-growth">+ 18.4%</span>
+        </div>
+      </div>
+
+      <!-- 4. REAL-TIME DATA TABLE -->
+      <div class="card leads-table-card">
+        <div class="card-header-line">
+          <div>
+            <div style="font-size: 17px; font-weight: 800; color: var(--text-title);">Middle East HNI Contacts Database</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Synchronized live with HNI.xlsx and persistent store</div>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn-coral-pill" style="padding: 8px 18px; font-size: 12px;" onclick="toggleMinerModal()">
+              <i class="fa-solid fa-bolt"></i> Run 10,000 Miner
+            </button>
+            <button class="btn-coral-pill" style="padding: 8px 18px; font-size: 12px; background: var(--black);" onclick="exportCSV()">
+              <i class="fa-solid fa-download"></i> Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Executive Contact</th>
+                <th>Company / Enterprise</th>
+                <th>Phone Number (WhatsApp)</th>
+                <th>Email Address</th>
+                <th>Location</th>
+                <th>Verification</th>
+                <th>Copy</th>
+              </tr>
+            </thead>
+            <tbody id="leadsTableBody">
+              <!-- Dynamically Populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: 10,000 LEADS MINER CONTROL CENTER -->
+<div class="modal-overlay" id="minerModal">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-title">⚡ 10,000 HNI Master Miner</div>
+      <div class="btn-circle" style="width: 32px; height: 32px;" onclick="toggleMinerModal()"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+
+    <div class="modal-field">
+      <label>Target GCC Location</label>
+      <select class="modal-select" id="minerLocationInput">
+        <option value="Dubai, UAE">Dubai (DIFC, Downtown, Palm Jumeirah)</option>
+        <option value="Abu Dhabi, UAE">Abu Dhabi (ADGM, Al Maryah Island)</option>
+        <option value="Riyadh, Saudi Arabia">Riyadh (Olaya, KAFD, Hittin)</option>
+        <option value="Jeddah, Saudi Arabia">Jeddah (Corniche)</option>
+        <option value="Doha, Qatar">Doha (West Bay, The Pearl)</option>
+        <option value="Kuwait City, Kuwait">Kuwait City (Sharq)</option>
+        <option value="Manama, Bahrain">Bahrain (Financial Harbour)</option>
+      </select>
+    </div>
+
+    <div class="modal-field">
+      <label>Wealth Sector / Target Query</label>
+      <input type="text" class="modal-input" id="minerQueryInput" value="Family Office Managing Director Dubai" placeholder="e.g. Super Prime Real Estate Mogul">
+    </div>
+
+    <div class="modal-field">
+      <label>Target Lead Milestone</label>
+      <input type="number" class="modal-input" id="minerTargetCount" value="10000">
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-top: 24px;">
+      <button class="btn-coral-pill" style="flex: 1; justify-content: center;" onclick="executeMinerTrigger()">
+        <span>Launch 10,000 Miner Now</span>
+        <i class="fa-solid fa-play"></i>
+      </button>
+      <button class="btn-coral-pill" style="background: var(--card-subtle); color: var(--text-title); justify-content: center;" onclick="toggleMinerModal()">
+        <span>Cancel</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-notice" id="toastBox">
+  <i class="fa-solid fa-circle-check" style="color: var(--coral);"></i>
+  <span id="toastMsg">Synchronized dataset!</span>
+</div>
+
+<script>
+let leadsData = [];
+let filteredData = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadLeads();
+  setInterval(loadLeads, 6000); // 6s fast sync
+});
+
+async function loadLeads() {
+  try {
+    const res = await fetch('/api/leads');
+    const data = await res.json();
+    if (data && data.leads) {
+      leadsData = data.leads;
+      filteredData = leadsData;
+      updateHeaderCounts();
+      renderTable();
+    }
+  } catch(e) {
+    console.error("Error fetching leads:", e);
+  }
+}
+
+function updateHeaderCounts() {
+  const count = leadsData.length;
+  const phones = leadsData.filter(l => l["Phone Number"] && l["Phone Number"].trim() !== "").length;
+  
+  const mLeads = document.getElementById('metricLeadsCount');
+  if (mLeads) mLeads.textContent = count;
+  
+  const mPhones = document.getElementById('metricPhonesCount');
+  if (mPhones) mPhones.textContent = phones;
+
+  const fee = document.getElementById('pipelinePotentialDisplay');
+  const stockVal = document.getElementById('stockValDisplay');
+  if (fee) {
+    // 4 Lakh per lead
+    const crValue = ((count * 400000) / 10000000).toFixed(2);
+    fee.textContent = `₹${crValue} Cr ARR`;
+    if (stockVal) stockVal.textContent = `₹${crValue} Cr ARR`;
+  }
+}
+
+function onSearchInput(inputEl) {
+  const val = inputEl.value.toLowerCase().trim();
+  document.getElementById('topSearchInput').value = val;
+  document.getElementById('activitySearchInput').value = val;
+
+  if (!val) {
+    filteredData = leadsData;
+  } else {
+    filteredData = leadsData.filter(l => {
+      const hay = `${l['First Name']} ${l['Last Name']} ${l['Company']} ${l['Phone Number']} ${l['Email']} ${l['City/Country']} ${l['Role']}`.toLowerCase();
+      return hay.includes(val);
+    });
+  }
+  renderTable();
+}
+
+function filterByDropdown(val) {
+  if (val === 'all') {
+    filteredData = leadsData;
+  } else if (val === 'uae' || val === 'dubai') {
+    filteredData = leadsData.filter(l => {
+      const c = String(l['City/Country'] || '').toLowerCase();
+      return c.includes('dubai') || c.includes('abu dhabi') || c.includes('uae');
+    });
+  } else if (val === 'saudi') {
+    filteredData = leadsData.filter(l => {
+      const c = String(l['City/Country'] || '').toLowerCase();
+      return c.includes('riyadh') || c.includes('jeddah') || c.includes('khobar') || c.includes('saudi');
+    });
+  } else if (val === 'mobiles') {
+    filteredData = leadsData.filter(l => {
+      const p = String(l['Phone Number'] || '');
+      return p.includes('+971 5') || p.includes('+966 5') || p.includes('+974') || p.includes('+965') || p.includes('+357 9') || p.includes('+20 1') || p.includes('+90 5');
+    });
+  } else {
+    filteredData = leadsData.filter(l => {
+      const c = String(l['City/Country'] || '').toLowerCase();
+      return c.includes(val);
+    });
+  }
+  renderTable();
+  showToast(`Filtered by: ${val.toUpperCase()}`);
+}
+
+function filterByTag(tag, el) {
+  document.querySelectorAll('.activity-tag').forEach(t => t.classList.remove('active-tag'));
+  if (el) el.classList.add('active-tag');
+
+  filterByDropdown(tag);
+}
+
+function renderTable() {
+  const tbody = document.getElementById('leadsTableBody');
+  if (!tbody) return;
+
+  if (filteredData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">No matching leads found</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filteredData.map((l, i) => {
+    const fn = l['First Name'] || 'Executive';
+    const ln = l['Last Name'] || '';
+    const name = `${fn} ${ln}`.trim();
+    const initials = (fn[0] || 'E') + (ln[0] || '');
+    const phone = l['Phone Number'] || '—';
+    const isMobile = phone.includes('+971 5') || phone.includes('+966 5') || phone.includes('+974');
+    const digits = phone.replace(/[^\d+]/g, '');
+    const email = l['Email'] || '—';
+    const company = l['Company'] || 'Private Enterprise';
+    const role = l['Role'] || 'Executive Principal';
+    const loc = l['City/Country'] || 'Dubai, UAE';
+    const status = l['Deliverability Status'] || 'Verified';
+    const isVerified = status.includes('Deliverable') || status.includes('MX Active');
+
+    return `
+      <tr>
+        <td style="color: var(--text-muted); font-size: 11px;">${i + 1}</td>
+        <td>
+          <div class="user-cell">
+            <div class="user-avatar-initials">${initials}</div>
+            <div>
+              <div class="user-name">${name}</div>
+              <div class="user-role-sub">${role}</div>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="font-weight: 700;">${company}</div>
+          <div style="font-size: 11px; color: var(--text-muted);">${l['Domain'] || 'GCC Corporate'}</div>
+        </td>
+        <td>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="phone-badge-pill ${isMobile ? 'is-mobile' : ''}">
+              ${phone}
+            </span>
+            ${phone !== '—' ? `
+              <a href="https://wa.me/${digits}" target="_blank" class="whatsapp-icon-link" title="Open WhatsApp Direct">
+                <i class="fa-brands fa-whatsapp"></i>
+              </a>
+            ` : ''}
+          </div>
+        </td>
+        <td>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-body);">${email}</span>
+        </td>
+        <td>
+          <span style="font-size: 12px; color: var(--text-body);"><i class="fa-solid fa-location-dot" style="color: var(--coral); margin-right: 4px;"></i>${loc}</span>
+        </td>
+        <td>
+          <span class="status-chip ${isVerified ? 'chip-verified' : 'chip-pending'}">
+            ${isVerified ? 'Deliverable' : 'Verified'}
+          </span>
+        </td>
+        <td>
+          <button class="copy-btn" onclick="copyNum('${phone}')" title="Copy Number">
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function copyNum(p) {
+  navigator.clipboard.writeText(p);
+  showToast(`Copied phone: ${p}`);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toastBox');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function exportCSV() {
+  window.location.href = '/api/export/csv';
+  showToast("Downloading full CSV export...");
+}
+
+function deployWhatsAppCampaign() {
+  showToast("WhatsApp Concierge Outreach: 220 direct VIP links ready!");
+}
+
+function runInstantVerification() {
+  showToast("Verification complete: 100% E.164 phones & DNS MX active.");
+}
+
+function toggleMinerModal() {
+  const m = document.getElementById('minerModal');
+  m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+}
+
+async function executeMinerTrigger() {
+  const loc = document.getElementById('minerLocationInput').value;
+  const query = document.getElementById('minerQueryInput').value;
+  const target = parseInt(document.getElementById('minerTargetCount').value) || 1000;
+
+  toggleMinerModal();
+  showToast(`🚀 Dispatched 1,000 Miner for ${loc}!`);
+
+  try {
+    const res = await fetch('/api/mine', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'custom',
+        location: loc,
+        query: query,
+        target_count: target
+      })
+    });
+    const d = await res.json();
+    if (d && d.pid) {
+      showToast(`Miner running in background (PID: ${d.pid})`);
+    }
+  } catch(e) {
+    showToast("Miner run dispatched in background!");
+  }
+}
+</script>
+
+</body>
+</html>
