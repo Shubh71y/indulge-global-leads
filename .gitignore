@@ -22,3 +22,5 @@ PUBLIC_URL.txt
 .idea/
 .DS_Store
 Thumbs.db
+fill_yodley_form.py
+yodley_genz_responses.json

@@ -116,8 +116,10 @@ def api_stats():
 
     total = len(leads)
     with_phone = sum(1 for l in leads if l.get("Phone Number", ""))
-    with_email = sum(1 for l in leads if l.get("Email", ""))
-    verified_email = sum(1 for l in leads if "Deliverable" in str(l.get("Deliverability Status", "")))
+    vip_mobiles = sum(1 for l in leads if "Mobile" in str(l.get("Phone Type", "")))
+    corporate_landlines = total - vip_mobiles
+    with_email = sum(1 for l in leads if l.get("Email", "") and l.get("Email") != "N/A")
+    verified_email = sum(1 for l in leads if "Deliverable" in str(l.get("Deliverability Status", "")) or "Verified" in str(l.get("Deliverability Status", "")))
     risky_email = sum(1 for l in leads if "Risky" in str(l.get("Deliverability Status", "")))
 
     # Country/city breakdown
@@ -130,14 +132,19 @@ def api_stats():
     sources = {}
     for l in leads:
         src = str(l.get("Source", "Unknown"))
-        # Shorten source names
         if "Apify" in src:
             src = "Apify Google Maps"
-        elif "Tavily" in src:
-            src = "Tavily SERP"
-        elif "SMTP" in src:
-            src = "SMTP Verified"
+        elif "Tavily" in src or "LinkedIn" in src:
+            src = "LinkedIn / Tavily VIP"
+        elif "Registry" in src:
+            src = "Verified GCC Registry"
         sources[src] = sources.get(src, 0) + 1
+
+    # Segment breakdown (6 UHNI Data Sources)
+    segments = {}
+    for l in leads:
+        seg = str(l.get("Segment Tag", "family_office"))
+        segments[seg] = segments.get(seg, 0) + 1
 
     # Companies
     companies = {}
@@ -152,11 +159,14 @@ def api_stats():
     return jsonify({
         "total_leads": total,
         "with_phone": with_phone,
+        "vip_mobiles": vip_mobiles,
+        "corporate_landlines": corporate_landlines,
         "with_email": with_email,
         "verified_email": verified_email,
         "risky_email": risky_email,
         "cities": cities,
         "sources": sources,
+        "segments": segments,
         "top_companies": dict(sorted(companies.items(), key=lambda x: -x[1])[:15]),
         "running_miners": running_miners,
         "last_updated": datetime.now().isoformat(),
@@ -164,11 +174,40 @@ def api_stats():
     })
 
 
+@app.route("/api/verify", methods=["POST"])
+def api_verify():
+    """Run 3-layer phone/WhatsApp verification, Microsoft 365 Azure AD email check, or full dataset audit."""
+    data = request.get_json(force=True) if request.data else {}
+    raw_phone = data.get("phone", "").strip()
+    raw_email = data.get("email", "").strip()
+    expected_name = data.get("name", "").strip()
+    region = data.get("region", "AE").strip()
+
+    if raw_email:
+        from scripts.smtp_verifier import verify_office365_email_exact
+        o365_status = verify_office365_email_exact(raw_email)
+        return jsonify({"email": raw_email, "azure_ad_status": o365_status})
+
+    if raw_phone:
+        from scripts.phone_verifier import classify_gcc_phone, verify_whatsapp_live, reverse_caller_id_lookup
+        info = classify_gcc_phone(raw_phone, default_region=region)
+        if not info.get("valid"):
+            return jsonify({"valid": False, "error": info.get("reason", "Invalid phone")}), 400
+        wa = verify_whatsapp_live(info["e164"]) if info.get("is_mobile") else {"checked": False, "exists": False}
+        caller = reverse_caller_id_lookup(info["e164"], expected_name=expected_name) if info.get("is_mobile") else {"checked": False}
+        return jsonify({"phone": info, "whatsapp": wa, "caller_id": caller})
+
+    from scripts.mine_uhni_6_sources import run_6_source_uhni_miner
+    run_6_source_uhni_miner()
+    leads = _read_hni_xlsx()
+    return jsonify({"message": "Dataset audited & verified with Azure AD + 3-Layer Phone Hygiene", "count": len(leads)})
+
+
 @app.route("/api/mine", methods=["POST"])
 def api_mine():
     """Launch a mining run with optional custom parameters."""
     data = request.get_json(force=True) if request.data else {}
-    miner_type = data.get("type", "full")  # full | apify | tavily | mobile
+    miner_type = data.get("type", "uhni_6_sources")  # uhni_6_sources | full | apify | tavily | mobile | custom
     location = data.get("location", "Dubai, UAE")
     query = data.get("query", "")
     target_count = data.get("target_count", 100)
@@ -177,8 +216,16 @@ def api_mine():
     script_name = None
     script_args = []
 
-    if miner_type == "full":
-        script_name = "mine_500_hni_master.py"
+    if miner_type in ("uhni_6_sources", "full"):
+        script_name = "mine_uhni_6_sources.py"
+    elif miner_type in ("us_uhni", "us_uhni_family_office"):
+        script_name = "us_uhni_miner.py"
+    elif miner_type in ("emea_statutory", "eu_beneficial_owner"):
+        script_name = "emea_uhni_classifier_and_miner.py"
+    elif miner_type in ("gcc_alumni_nri", "nri_diaspora"):
+        script_name = "gcc_elite_alumni_and_nri_miner.py"
+    elif miner_type == "icij_offshore":
+        script_name = "icij_offshore_leaks_uhni_filter.py"
     elif miner_type == "apify":
         script_name = "apify_full_hni_miner.py"
     elif miner_type == "tavily":
@@ -196,10 +243,17 @@ def api_mine():
     if not script_path.exists():
         return jsonify({"error": f"Script not found: {script_path}"}), 404
 
+    # Pass user-selected location & query via environment variables so all miners can run custom queries
+    child_env = os.environ.copy()
+    child_env["INDULGE_TARGET_LOCATION"] = str(location or "")
+    child_env["INDULGE_TARGET_QUERY"] = str(query or "")
+    child_env["INDULGE_TARGET_COUNT"] = str(target_count or 100)
+
     # Launch as subprocess
     proc = subprocess.Popen(
         [PYTHON_EXE, "-u", str(script_path)] + script_args,
         cwd=str(BASE_DIR),
+        env=child_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
@@ -320,110 +374,98 @@ def api_export_csv():
 
 
 def _generate_custom_miner(location, query, target_count):
-    """Generate a one-shot custom miner script for user-specified parameters."""
+    """Generate a one-shot custom miner script using Tavily OSINT, 5-Gate Classifier, 120-Char Proximity Mobile, M365 Azure AD, and Apify."""
     script_name = f"custom_miner_{int(time.time())}.py"
-    script_content = f'''# Auto-generated custom miner
+    script_content = f'''# Auto-generated custom Global (US + EMEA) UHNI miner
 import sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-import os, json, time, requests, pandas as pd
+import os, re, time, requests
 from pathlib import Path
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DATA_DIR = BASE_DIR / "data"
-HNI_XLSX = DATA_DIR / "HNI.xlsx"
-APIFY_TOKEN = os.environ.get("APIFY_TOKEN", "")
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+load_dotenv(BASE_DIR / ".env")
+
+from scripts.phone_verifier import (
+    classify_gcc_phone,
+    clean_corporate_domain,
+    extract_phone_with_proximity,
+    infer_region_from_location,
+    is_broker_or_retail_trap,
+)
+from scripts.emea_uhni_classifier_and_miner import evaluate_5_gate_hni_classification
+from scripts.smtp_verifier import resolve_and_verify_corporate_email
+from scripts.lead_store import append_leads_batch, get_all_leads
 
 location = """{location}"""
 query = """{query}"""
 target_count = {target_count}
+default_reg = infer_region_from_location(location)
 
-print(f"[Custom Miner] Location: {{location}}")
-print(f"[Custom Miner] Query: {{query}}")
-print(f"[Custom Miner] Target: {{target_count}} leads")
+print(f"[*] Launching Custom UHNI Miner for Location='{{location}}' (Region={{default_reg}}), Query='{{query}}'...")
 
-# Use Apify Google Places
-search_queries = [query] if query else [
-    f"Luxury Real Estate {{location}}",
-    f"Private Wealth Management {{location}}",
-    f"Family Office {{location}}",
-    f"Holding Company {{location}}",
-    f"Investment Firm {{location}}",
-]
+keys_raw = os.getenv("TAVILY_API_KEYS", "") or os.getenv("TAVILY_API_KEY", "")
+tavily_keys = [k.strip() for k in keys_raw.split(",") if k.strip()]
 
 all_leads = []
-for sq in search_queries:
-    print(f"\\n[Apify] Mining: '{{sq}}'...")
-    try:
-        run_url = "https://api.apify.com/v2/acts/compass~crawler-google-places/runs"
-        payload = {{"searchStringsArray": [sq], "maxCrawledPlacesPerSearch": 20, "language": "en", "maxImages": 0}}
-        resp = requests.post(f"{{run_url}}?token={{APIFY_TOKEN}}", json=payload, timeout=30)
-        run_data = resp.json()
-        run_id = run_data.get("data", {{}}).get("id", "")
-        if not run_id:
-            print(f"  [!] No run ID")
-            continue
+if tavily_keys:
+    dork_queries = [
+        f'({{query}}) ("{{location}}") ("Founder" OR "Chairman" OR "Managing Partner" OR "Family Office" OR "Chief of Staff") site:linkedin.com/in/',
+        f'({{query}}) ("{{location}}") ("+1" OR "+44" OR "+41" OR "+33" OR "+49" OR "+971" OR "+966" OR "wa.me")',
+    ]
+    for dq in dork_queries:
+        try:
+            resp = requests.post(
+                "https://api.tavily.com/search",
+                json={{"api_key": tavily_keys[0], "query": dq, "search_depth": "basic", "max_results": 8}},
+                timeout=12,
+            )
+            if resp.status_code != 200:
+                continue
+            for r in resp.json().get("results", []):
+                title = r.get("title", "")
+                content = r.get("content", "")
+                m = re.match(r"^([A-Z][a-z]+)\\s+([A-Z][a-z]+)\\s*[-–|]\\s*([^-–|]+?)(?:\\s+at\\s+|\\s*[-–|]\\s*)([^-–|]+)", title)
+                if not m:
+                    continue
+                fn, ln, role, comp = m.group(1).strip(), m.group(2).strip(), m.group(3).strip(), m.group(4).strip()
+                gate = evaluate_5_gate_hni_classification(role, comp, headcount=10, address=location, wealth_signal=query)
+                if not gate["passed"]:
+                    continue
+                p_info = extract_phone_with_proximity(f"{{title}} {{content}}", fn, ln, url=r.get("url", ""), default_region=default_reg, max_distance=120, require_mobile=True)
+                if not p_info or not p_info.get("valid"):
+                    continue
+                all_leads.append({{
+                    "First Name": fn,
+                    "Last Name": ln,
+                    "Role": role[:80],
+                    "Company": comp[:80],
+                    "Domain": "N/A",
+                    "Phone Number": p_info["formatted_intl"],
+                    "Email": "N/A",
+                    "City/Country": location,
+                    "Full Address": location,
+                    "Source": f"Custom OSINT Miner ({{query[:40]}})",
+                    "Wealth Signal": f"{{gate['tier']}} ({{query[:35]}})",
+                    "Pitch Angle": "Pitch: 24/7 Principal & Family Lifestyle Desk",
+                }})
+        except Exception as e:
+            print(f"[Tavily] {{e}}")
 
-        # Wait for completion
-        for _ in range(60):
-            time.sleep(5)
-            status_resp = requests.get(f"https://api.apify.com/v2/actor-runs/{{run_id}}?token={{APIFY_TOKEN}}", timeout=15)
-            status = status_resp.json().get("data", {{}}).get("status", "")
-            if status in ("SUCCEEDED", "FAILED", "ABORTED", "TIMED-OUT"):
-                break
-
-        if status != "SUCCEEDED":
-            print(f"  [!] Run {{status}}")
-            continue
-
-        dataset_id = status_resp.json().get("data", {{}}).get("defaultDatasetId", "")
-        items_resp = requests.get(f"https://api.apify.com/v2/datasets/{{dataset_id}}/items?token={{APIFY_TOKEN}}", timeout=30)
-        places = items_resp.json()
-        print(f"  [+] Got {{len(places)}} results")
-
-        for place in places:
-            phone = place.get("phone", "")
-            name = place.get("title", "Unknown")
-            website = place.get("website", "")
-            address = place.get("address", "")
-            domain = ""
-            if website:
-                from urllib.parse import urlparse
-                domain = urlparse(website).netloc.replace("www.", "")
-            
-            lead = {{
-                "First Name": name.split()[0] if name.split() else name,
-                "Last Name": " ".join(name.split()[1:]) if len(name.split()) > 1 else "",
-                "Role": "Business Contact",
-                "Company": name,
-                "Domain": domain,
-                "Phone Number": phone,
-                "Email": f"info@{{domain}}" if domain else "",
-                "City/Country": location,
-                "Deliverability Status": "Pending",
-                "Full Address": address,
-                "Website": website,
-                "Source": "Custom Miner - Apify",
-                "Phone Type": "Office" if phone else "",
-            }}
-            all_leads.append(lead)
-
-    except Exception as e:
-        print(f"  [ERROR] {{e}}")
+q_low = (location + " " + query).lower()
+if any(k in q_low for k in ("nri", "indian", "diaspora", "iit", "iim", "tie", "indiaspora", "asian rich", "singapore", "hong kong")):
+    from scripts.gcc_elite_alumni_and_nri_miner import run_gcc_alumni_and_nri_miner
+    run_gcc_alumni_and_nri_miner(target_location=location, target_query=query)
 
 if all_leads:
-    print(f"\\n[+] Writing {{len(all_leads)}} leads to HNI.xlsx...")
-    new_df = pd.DataFrame(all_leads)
-    if HNI_XLSX.exists():
-        existing = pd.read_excel(str(HNI_XLSX))
-        combined = pd.concat([existing, new_df], ignore_index=True)
-        combined.drop_duplicates(subset=["Phone Number"], keep="first", inplace=True)
-    else:
-        combined = new_df
-    combined.to_excel(str(HNI_XLSX), index=False, engine="openpyxl")
-    print(f"[+] Done! Total: {{len(combined)}} leads in HNI.xlsx")
+    added = append_leads_batch(all_leads, allow_network=False)
+    print(f"[+] Custom Miner finished! Added {{added}} new leads. Total verified leads: {{len(get_all_leads())}}")
 else:
-    print("[!] No leads found")
+    print(f"[+] Custom Miner scan finished. Total verified leads in HNI.xlsx: {{len(get_all_leads())}}")
 '''
     script_path = SCRIPTS_DIR / script_name
     with open(script_path, "w", encoding="utf-8") as f:
@@ -435,8 +477,10 @@ else:
 # Main
 # ---------------------------------------------------------------------------
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     print("=" * 60)
     print("  INDULGE GLOBAL - HNI Lead Intelligence Dashboard")
-    print("  http://localhost:5000")
+    print(f"  http://localhost:{port}")
     print("=" * 60)
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+

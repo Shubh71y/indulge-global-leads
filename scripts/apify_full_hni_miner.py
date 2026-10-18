@@ -189,23 +189,35 @@ def run_apify_gmaps_actor(query, max_items=15):
         print(f"  ❌ Error in Apify Maps run: {e}")
     return []
 
+from scripts.phone_verifier import (
+    classify_gcc_phone,
+    clean_corporate_domain,
+    clean_and_validate_email,
+    is_valid_person_name,
+    is_broker_or_retail_trap,
+)
+from scripts.entity_resolver import resolve_lead_entity
+
 def extract_hni_from_gmaps_item(item, default_city="Dubai, UAE"):
-    """Transforms Apify Google Maps item into HNI lead entry."""
+    """Transforms Apify Google Maps item into HNI lead entry with strict entity resolution."""
     title = item.get('title', '').strip()
     phone = item.get('phone', '') or item.get('phoneUnformatted', '')
     website = item.get('website', '')
     address = item.get('address', '')
     category = item.get('categoryName', '')
 
-    if not title:
+    if not title or not phone:
         return None
 
-    # Clean domain
-    domain = ""
-    if website:
-        domain = re.sub(r'https?://', '', website).split('/')[0].replace('www.', '').strip()
+    if is_broker_or_retail_trap(title, category, website):
+        return None
 
-    # Determine city from address
+    phone_info = classify_gcc_phone(phone, default_region="AE")
+    if not phone_info.get("valid"):
+        return None
+
+    domain = clean_corporate_domain(website)
+
     city = default_city
     if "abu dhabi" in address.lower():
         city = "Abu Dhabi, UAE"
@@ -218,11 +230,28 @@ def extract_hni_from_gmaps_item(item, default_city="Dubai, UAE"):
     elif "kuwait" in address.lower():
         city = "Kuwait City, Kuwait"
 
-    # Search for Founder / MD / Chairman of this business entity
-    fn, ln, role, verified_email = "Executive", "Office", f"Founder / Principal ({category})", f"contact@{domain}" if domain else ""
-    
-    if domain:
-        # Quick probe for specific leader
+    fn, ln, role = "", "", f"Chairman & Managing Partner ({category})"
+    verified_email = ""
+
+    # Try resolving via Curated Registry or Apollo first
+    resolved = resolve_lead_entity(
+        first_name="",
+        last_name="",
+        company_name=title,
+        title=role,
+        email="",
+        domain=domain,
+        allow_network=True,
+    )
+    if resolved["name_valid"]:
+        fn = resolved["first_name"]
+        ln = resolved["last_name"]
+        role = resolved["title"]
+        domain = resolved["domain"]
+        verified_email = resolved["email"]
+
+    if not fn or not ln:
+        # Quick probe for specific leader on LinkedIn
         q = f'"{title}" ("Founder" OR "Chairman" OR "Managing Director" OR "CEO") site:linkedin.com/in/'
         try:
             p_resp = requests.post(
@@ -235,42 +264,49 @@ def extract_hni_from_gmaps_item(item, default_city="Dubai, UAE"):
                 if res:
                     first_res = res[0].get('title', '')
                     clean_res = re.sub(r' - LinkedIn.*', '', first_res)
-                    tokens = [t for t in re.sub(r'[^a-zA-Z\s]', '', clean_res).split() if len(t) > 1]
+                    clean_res = re.sub(r' \| LinkedIn.*', '', clean_res)
+                    tokens = [t for t in re.sub(r'[^a-zA-Z\s]', '', clean_res.split('-')[0]).split() if len(t) > 1]
                     if len(tokens) >= 2:
-                        fn, ln = tokens[0].capitalize(), tokens[-1].capitalize()
-                        role = "Chairman / Managing Director"
+                        cand_fn, cand_ln = tokens[0].capitalize(), tokens[-1].capitalize()
+                        if is_valid_person_name(cand_fn, cand_ln, title):
+                            fn, ln = cand_fn, cand_ln
+                            role = "Chairman & Managing Director"
         except Exception:
             pass
 
-        # Email Permutation & SMTP
+    if not is_valid_person_name(fn, ln, title):
+        return None
+
+    status = "Verified Mobile & WhatsApp Direct" if phone_info["is_mobile"] else "Verified Corporate Line (Email N/A)"
+    if domain and verified_email in ("", "N/A"):
         mx = get_mx_record(domain)
-        status = "Risky/Catch-all"
-        if fn != "Executive" and mx:
+        if mx:
             perms = generate_email_permutations(fn, ln, domain)
-            if perms:
-                for candidate in perms[:3]:
-                    if verify_email_smtp(candidate, mx):
-                        verified_email = candidate
-                        status = "Valid (SMTP 250 OK)"
-                        break
-                if not verified_email and perms:
-                    verified_email = perms[0]
-    else:
-        status = "Direct Phone Only"
+            for candidate in perms[:3]:
+                if verify_email_smtp(candidate, mx):
+                    verified_email = candidate
+                    status = "Valid (SMTP 250 OK)"
+                    break
+
+    final_email = clean_and_validate_email(verified_email, fn, ln, domain)
 
     return {
         "First Name": fn,
         "Last Name": ln,
         "Role": role,
         "Company": title,
-        "Domain": domain,
-        "Phone Number": phone,
-        "Email": verified_email,
+        "Domain": domain if domain else "N/A",
+        "Phone Number": phone_info["formatted_intl"],
+        "E164": phone_info["e164"],
+        "Phone Type": phone_info["phone_type"],
+        "Carrier": phone_info["carrier"],
+        "WhatsApp Link": phone_info["wa_link"] or "",
+        "Email": final_email,
         "City/Country": city,
         "Deliverability Status": status,
-        "Full Address": address,
+        "Full Address": address or city,
         "Website": website,
-        "Source": "Apify Google Maps GCC Luxury Intelligence"
+        "Source": "Apify Google Maps GCC Luxury Intelligence (Entity Resolved)"
     }
 
 def run_full_fledged_miner():

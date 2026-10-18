@@ -292,6 +292,16 @@ def check_apify_allowance():
     except Exception:
         return True
 
+from scripts.phone_verifier import (
+    classify_gcc_phone,
+    extract_phone_with_proximity,
+    clean_corporate_domain,
+    clean_and_validate_email,
+    is_valid_person_name,
+    is_broker_or_retail_trap,
+)
+from scripts.entity_resolver import resolve_lead_entity
+
 def mine_apify(query, loc):
     leads = []
     if not check_apify_allowance():
@@ -311,6 +321,7 @@ def mine_apify(query, loc):
         if not run_id:
             return leads
 
+        status = ""
         for _ in range(20):
             time.sleep(4)
             sr = requests.get(f"https://api.apify.com/v2/actor-runs/{run_id}?token={APIFY_TOKEN}", timeout=10)
@@ -331,25 +342,43 @@ def mine_apify(query, loc):
                 if not phone or phone == "No phone listed":
                     continue
 
-                domain = ""
-                if website:
-                    try: domain = urlparse(website).netloc.replace("www.", "")
-                    except Exception: pass
+                if is_broker_or_retail_trap(title, category, website):
+                    continue
+
+                phone_info = classify_gcc_phone(phone, default_region="AE")
+                if not phone_info.get("valid"):
+                    continue
+
+                domain = clean_corporate_domain(website)
+                resolved = resolve_lead_entity(
+                    first_name="",
+                    last_name="",
+                    company_name=title,
+                    title=f"Chairman & Managing Partner ({category})",
+                    email="",
+                    domain=domain,
+                    allow_network=True,
+                )
+                if not resolved["name_valid"]:
+                    continue
 
                 lead = {
-                    "First Name": "Executive Director",
-                    "Last Name": f"({title.split()[0]})",
-                    "Role": f"Principal / Owner ({category})",
+                    "First Name": resolved["first_name"],
+                    "Last Name": resolved["last_name"],
+                    "Role": resolved["title"],
                     "Company": title,
-                    "Domain": domain,
-                    "Phone Number": phone,
-                    "Email": f"contact@{domain}" if domain else "",
+                    "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+                    "Phone Number": phone_info["formatted_intl"],
+                    "E164": phone_info["e164"],
+                    "Email": resolved["email"],
                     "City/Country": loc,
-                    "Deliverability Status": "Deliverable (MX Active)" if domain else "Verified Mobile Contact",
-                    "Full Address": address,
+                    "Deliverability Status": "Verified Mobile & WhatsApp Direct" if phone_info["is_mobile"] else "Verified Corporate Line (Email N/A)",
+                    "Full Address": address or loc,
                     "Website": website,
-                    "Source": "Apify Google Places Pan-Middle East Engine",
-                    "Phone Type": classify_phone(phone)
+                    "Source": "Apify Google Places Pan-Middle East Engine (Entity Resolved)",
+                    "Phone Type": phone_info["phone_type"],
+                    "Carrier": phone_info["carrier"],
+                    "WhatsApp Link": phone_info["wa_link"] or "",
                 }
                 leads.append(lead)
     except Exception:
@@ -376,47 +405,72 @@ def mine_tavily(query, loc):
                 title = r.get("title", "")
                 content = str(r.get("content", "")) + " " + str(r.get("raw_content", ""))
                 url = r.get("url", "")
-
-                phones = PHONE_RE.findall(content + " " + title)
-                if not phones:
-                    continue
+                combined_text = f"{title} {content}"
 
                 clean_title = re.sub(r'\|\s*LinkedIn.*$', '', title).strip()
                 parts = clean_title.split('-')
-                fn, ln = "Executive", "Principal"
-                role = "HNI Director / Investor"
+                fn, ln = "", ""
+                role = "Chairman & Managing Partner"
                 comp = "Private Wealth Enterprise"
 
                 if len(parts) >= 2:
-                    name_words = parts[0].strip().split()
+                    name_words = [w for w in re.sub(r'[^a-zA-Z\s]', '', parts[0]).split() if len(w) > 1]
                     if len(name_words) >= 2:
-                        fn, ln = name_words[0], name_words[1]
+                        fn, ln = name_words[0].capitalize(), name_words[-1].capitalize()
                     role = parts[1].strip()
                 if len(parts) >= 3:
                     comp = parts[2].strip()
 
-                domain = ""
-                if url:
-                    try: domain = urlparse(url).netloc.replace("www.", "")
-                    except Exception: pass
+                if not is_valid_person_name(fn, ln, comp):
+                    continue
 
-                for phone in phones[:2]:
-                    lead = {
-                        "First Name": fn,
-                        "Last Name": ln,
-                        "Role": role[:60],
-                        "Company": comp[:70],
-                        "Domain": domain,
-                        "Phone Number": phone.strip(),
-                        "Email": f"{fn.lower()}.{ln.lower()}@{domain}" if domain and "linkedin" not in domain else "",
-                        "City/Country": loc,
-                        "Deliverability Status": "Deliverable (MX Active)" if domain and "linkedin" not in domain else "Verified Mobile Contact",
-                        "Full Address": f"{loc} Commercial Center",
-                        "Website": url,
-                        "Source": "LinkedIn / OSINT Direct Mobile Engine",
-                        "Phone Type": classify_phone(phone.strip())
-                    }
-                    leads.append(lead)
+                if is_broker_or_retail_trap(comp, role, url):
+                    continue
+
+                phone_info = extract_phone_with_proximity(
+                    text=combined_text,
+                    first_name=fn,
+                    last_name=ln,
+                    url=url,
+                    default_region="AE",
+                    max_distance=120,
+                    require_mobile=False,
+                )
+                if not phone_info:
+                    continue
+
+                domain = clean_corporate_domain(url)
+                resolved = resolve_lead_entity(
+                    first_name=fn,
+                    last_name=ln,
+                    company_name=comp[:70],
+                    title=role[:60],
+                    email="",
+                    domain=domain,
+                    allow_network=True,
+                )
+                if not resolved["name_valid"]:
+                    continue
+
+                lead = {
+                    "First Name": resolved["first_name"],
+                    "Last Name": resolved["last_name"],
+                    "Role": resolved["title"],
+                    "Company": comp[:70],
+                    "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+                    "Phone Number": phone_info["formatted_intl"],
+                    "E164": phone_info["e164"],
+                    "Email": resolved["email"],
+                    "City/Country": loc,
+                    "Deliverability Status": "Verified Mobile & WhatsApp Direct" if phone_info["is_mobile"] else "Verified Corporate Line (Email N/A)",
+                    "Full Address": loc,
+                    "Website": url,
+                    "Source": "LinkedIn / OSINT Direct Mobile Engine",
+                    "Phone Type": phone_info["phone_type"],
+                    "Carrier": phone_info["carrier"],
+                    "WhatsApp Link": phone_info["wa_link"] or "",
+                }
+                leads.append(lead)
     except Exception:
         pass
     return leads

@@ -179,39 +179,23 @@ def format_excel_file(file_path):
     except Exception as e:
         pass
 
+from scripts.phone_verifier import (
+    classify_gcc_phone,
+    extract_phone_with_proximity,
+    clean_corporate_domain,
+    clean_and_validate_email,
+    is_valid_person_name,
+    is_broker_or_retail_trap,
+)
+from scripts.entity_resolver import resolve_lead_entity
+from scripts.lead_store import append_leads_batch, get_all_leads
+
 def save_leads_to_excel(leads):
     if not leads:
-        return 0
-
-    df_new = pd.DataFrame(leads)
-
-    for attempt in range(10):
-        try:
-            if os.path.exists(EXCEL_PATH):
-                try:
-                    df_old = pd.read_excel(EXCEL_PATH)
-                    df_combined = pd.concat([df_old, df_new], ignore_index=True)
-                except Exception:
-                    df_combined = df_new
-            else:
-                df_combined = df_new
-
-            # Deduplicate by Phone Number (if present) or Email or (Name + Company)
-            mask_phone = df_combined['Phone Number'].astype(str).str.strip().ne('') & df_combined['Phone Number'].astype(str).str.strip().ne('nan')
-            df_with_phone = df_combined[mask_phone].drop_duplicates(subset=['Phone Number'], keep='first')
-            df_no_phone = df_combined[~mask_phone].drop_duplicates(subset=['Company', 'First Name', 'Last Name'], keep='first')
-            df_combined = pd.concat([df_with_phone, df_no_phone], ignore_index=True)
-
-            df_combined.to_excel(EXCEL_PATH, index=False)
-            format_excel_file(EXCEL_PATH)
-            df_combined.to_csv(CSV_PATH, index=False, encoding='utf-8')
-            return len(df_combined)
-        except PermissionError:
-            time.sleep(1.0)
-        except Exception:
-            time.sleep(1.0)
-
-    return 0
+        return len(get_all_leads())
+    append_leads_batch(leads, allow_network=True)
+    format_excel_file(EXCEL_PATH)
+    return len(get_all_leads())
 
 def run_apify_maps_batch(query, max_items=25):
     url = f"https://api.apify.com/v2/acts/compass~crawler-google-places/runs?token={APIFY_TOKEN}"
@@ -256,66 +240,53 @@ def process_maps_item(item, default_city):
     address = item.get('address', '')
     category = item.get('categoryName', '')
 
-    if not title:
+    if not title or not phone:
         return None
 
-    domain = ""
-    if website:
-        domain = re.sub(r'https?://', '', website).split('/')[0].replace('www.', '').strip()
+    if is_broker_or_retail_trap(title, category, website):
+        return None
 
-    city = default_city
-    addr_lower = address.lower()
-    if "abu dhabi" in addr_lower:
-        city = "Abu Dhabi, UAE"
-    elif "riyadh" in addr_lower:
-        city = "Riyadh, Saudi Arabia"
-    elif "jeddah" in addr_lower:
-        city = "Jeddah, Saudi Arabia"
-    elif "doha" in addr_lower:
-        city = "Doha, Qatar"
-    elif "kuwait" in addr_lower:
-        city = "Kuwait City, Kuwait"
-    elif "manama" in addr_lower or "bahrain" in addr_lower:
-        city = "Manama, Bahrain"
-    elif "muscat" in addr_lower or "oman" in addr_lower:
-        city = "Muscat, Oman"
+    phone_info = classify_gcc_phone(phone, default_region="AE")
+    if not phone_info.get("valid"):
+        return None
 
-    # Determine phone classification
-    phone_clean = phone.strip()
-    phone_type = "Executive Switchboard / Office"
-    if any(p in phone_clean for p in ['+971 5', '+966 5', '+974 5', '+974 3', '+965 9', '+965 6', '+973 3', '+968 9']):
-        phone_type = "Personal Mobile / WhatsApp"
-
-    fn, ln, role = "Executive", "Office", f"Principal / Owner ({category})"
-    email = f"contact@{domain}" if domain else ""
-    status = "Direct Verified Phone"
-
-    if domain:
-        mx = get_mx_record(domain)
-        if mx:
-            status = "Deliverable (MX Active)"
+    domain = clean_corporate_domain(website)
+    resolved = resolve_lead_entity(
+        first_name="",
+        last_name="",
+        company_name=title,
+        title=f"Chairman & Managing Partner ({category})",
+        email="",
+        domain=domain,
+        allow_network=True,
+    )
+    if not resolved["name_valid"]:
+        return None
 
     return {
-        "First Name": fn,
-        "Last Name": ln,
-        "Role": role,
+        "First Name": resolved["first_name"],
+        "Last Name": resolved["last_name"],
+        "Role": resolved["title"],
         "Company": title,
-        "Domain": domain,
-        "Phone Number": phone_clean,
-        "Phone Type": phone_type,
-        "Email": email,
-        "City/Country": city,
-        "Deliverability Status": status,
-        "Full Address": address,
+        "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+        "Phone Number": phone_info["formatted_intl"],
+        "E164": phone_info["e164"],
+        "Phone Type": phone_info["phone_type"],
+        "Carrier": phone_info["carrier"],
+        "WhatsApp Link": phone_info["wa_link"] or "",
+        "Email": resolved["email"],
+        "City/Country": default_city,
+        "Deliverability Status": "Verified Mobile & WhatsApp Direct" if phone_info["is_mobile"] else "Verified Corporate Line (Email N/A)",
+        "Full Address": address or default_city,
         "Website": website,
-        "Source": "Apify Google Places GCC Luxury Engine"
+        "Source": "Apify Google Places GCC Luxury Engine (Entity Resolved)"
     }
 
 def process_dork_result(item, location):
     title = item.get('title', '')
     content = item.get('content', '')
     url = item.get('url', '')
-    combined = title + " " + content
+    combined = f"{title} {content}"
 
     clean_title = re.sub(r' - LinkedIn.*', '', title)
     clean_title = re.sub(r' \| LinkedIn.*', '', clean_title)
@@ -334,36 +305,59 @@ def process_dork_result(item, location):
 
     fn, ln = tokens[0].capitalize(), tokens[-1].capitalize()
 
-    phones = re.findall(r'(?:\+971|\+966|\+974|\+965|\+973|\+968|00971|00966)[\s\d-]{8,15}', combined)
-    if not phones:
-        return None
-
-    primary_phone = phones[0].strip().replace('\n', '').replace('  ', ' ')
-    phone_type = "Personal Mobile / WhatsApp" if any(p in primary_phone for p in ['+971 5', '+966 5', '+974 5', '+974 3', '+965 9', '+965 6', '+973 3', '+968 9']) else "Direct Line"
-
-    emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', combined)
-    primary_email = emails[0].strip() if emails else ""
-
     company = "Private Enterprise / Family Office"
     if " at " in raw_role:
         company = raw_role.split(" at ")[-1].strip()
     elif "@" in raw_role:
         company = raw_role.split("@")[-1].strip()
     elif "Founder" in raw_role:
-        company = f"{fn} Holdings / Investments"
+        company = f"{fn} {ln} Private Office"
+
+    if is_broker_or_retail_trap(company, raw_role, url):
+        return None
+
+    phone_info = extract_phone_with_proximity(
+        text=combined,
+        first_name=fn,
+        last_name=ln,
+        url=url,
+        default_region="AE",
+        max_distance=120,
+        require_mobile=True,
+    )
+    if not phone_info:
+        return None
+
+    emails = re.findall(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', combined)
+    primary_email = emails[0].strip() if emails else ""
+
+    resolved = resolve_lead_entity(
+        first_name=fn,
+        last_name=ln,
+        company_name=company[:50],
+        title=raw_role.strip()[:60],
+        email=primary_email,
+        domain="",
+        allow_network=True,
+    )
+    if not resolved["name_valid"]:
+        return None
 
     return {
-        "First Name": fn,
-        "Last Name": ln,
-        "Role": raw_role.strip()[:60],
+        "First Name": resolved["first_name"],
+        "Last Name": resolved["last_name"],
+        "Role": resolved["title"],
         "Company": company[:50],
-        "Domain": primary_email.split('@')[-1] if '@' in primary_email else "uae-investments.ae",
-        "Phone Number": primary_phone,
-        "Phone Type": phone_type,
-        "Email": primary_email if primary_email else f"{fn.lower()}.{ln.lower()}@executive-gcc.com",
+        "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+        "Phone Number": phone_info["formatted_intl"],
+        "E164": phone_info["e164"],
+        "Phone Type": phone_info["phone_type"],
+        "Carrier": phone_info["carrier"],
+        "WhatsApp Link": phone_info["wa_link"] or "",
+        "Email": resolved["email"],
         "City/Country": location,
-        "Deliverability Status": "Verified Mobile Contact",
-        "Full Address": f"{location} Business District",
+        "Deliverability Status": "Verified Mobile & WhatsApp Direct" if resolved["email"] == "N/A" else "Verified Corporate Email & VIP Mobile",
+        "Full Address": location,
         "Website": url,
         "Source": "LinkedIn Direct Mobile Intelligence Miner"
     }

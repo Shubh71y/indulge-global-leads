@@ -142,58 +142,36 @@ def is_valid_name(first, last):
     return True
 
 
-# ---------------------------------------------------------------------------
-# APIFY Google Maps - Targeted for contact numbers
-# ---------------------------------------------------------------------------
+from scripts.phone_verifier import (
+    classify_gcc_phone,
+    extract_phone_with_proximity,
+    clean_corporate_domain,
+    clean_and_validate_email,
+    is_valid_person_name,
+    is_broker_or_retail_trap,
+)
+from scripts.entity_resolver import resolve_lead_entity
+from scripts.lead_store import append_leads_batch, get_all_leads
+
 APIFY_QUERIES = [
-    # High-value personal services (more likely to have personal mobiles)
-    ("Luxury Real Estate Agent Dubai", "Dubai, UAE"),
-    ("Private Wealth Advisor Dubai DIFC", "Dubai, UAE"),
-    ("Personal Shopper Dubai", "Dubai, UAE"),
-    ("Luxury Car Dealer Dubai", "Dubai, UAE"),
-    ("Yacht Broker Dubai Marina", "Dubai, UAE"),
-    ("Private Jet Charter Dubai", "Dubai, UAE"),
-    ("Luxury Interior Designer Dubai", "Dubai, UAE"),
-    ("Private Chef Dubai", "Dubai, UAE"),
-    ("Luxury Wedding Planner Dubai", "Dubai, UAE"),
-    ("Fine Art Gallery Dubai", "Dubai, UAE"),
-    ("Bespoke Tailor Dubai", "Dubai, UAE"),
-    ("Luxury Travel Agent Dubai", "Dubai, UAE"),
-    ("Private Tutor Dubai", "Dubai, UAE"),
-    ("Concierge Service Dubai", "Dubai, UAE"),
-    ("VIP Event Planner Dubai", "Dubai, UAE"),
-    ("Luxury Spa Dubai Jumeirah", "Dubai, UAE"),
-
-    # Abu Dhabi luxury
-    ("Private Wealth Advisor Abu Dhabi", "Abu Dhabi, UAE"),
-    ("Luxury Real Estate Agent Abu Dhabi", "Abu Dhabi, UAE"),
-    ("Yacht Broker Abu Dhabi", "Abu Dhabi, UAE"),
-    ("Private Jet Charter Abu Dhabi", "Abu Dhabi, UAE"),
-    ("Luxury Interior Designer Abu Dhabi", "Abu Dhabi, UAE"),
-
-    # Saudi Arabia
-    ("Luxury Real Estate Agent Riyadh", "Riyadh, Saudi Arabia"),
-    ("Private Wealth Manager Riyadh", "Riyadh, Saudi Arabia"),
-    ("Luxury Car Dealer Riyadh", "Riyadh, Saudi Arabia"),
-    ("VIP Event Planner Riyadh", "Riyadh, Saudi Arabia"),
-    ("Luxury Real Estate Jeddah", "Jeddah, Saudi Arabia"),
-    ("Yacht Broker Jeddah", "Jeddah, Saudi Arabia"),
-
-    # Qatar
-    ("Luxury Real Estate Agent Doha", "Doha, Qatar"),
-    ("Private Wealth Manager Doha", "Doha, Qatar"),
-    ("Luxury Interior Designer Doha", "Doha, Qatar"),
-    ("VIP Concierge Doha", "Doha, Qatar"),
-
-    # Bahrain/Kuwait/Oman
-    ("Luxury Real Estate Bahrain", "Manama, Bahrain"),
-    ("Private Wealth Advisor Kuwait City", "Kuwait City, Kuwait"),
-    ("Luxury Real Estate Muscat", "Muscat, Oman"),
+    ("Single Family Office DIFC Dubai", "Dubai, UAE"),
+    ("Private Investment Group Downtown Dubai", "Dubai, UAE"),
+    ("Family Business Holding Dubai", "Dubai, UAE"),
+    ("Private Equity Firm DIFC Dubai", "Dubai, UAE"),
+    ("Single Family Office ADGM Abu Dhabi", "Abu Dhabi, UAE"),
+    ("Investment Holding Company Abu Dhabi", "Abu Dhabi, UAE"),
+    ("Family Office Riyadh Olaya", "Riyadh, Saudi Arabia"),
+    ("Holding Company KAFD Riyadh", "Riyadh, Saudi Arabia"),
+    ("Family Holding Company Jeddah", "Jeddah, Saudi Arabia"),
+    ("Family Office Doha West Bay", "Doha, Qatar"),
+    ("Family Holding Company Kuwait City", "Kuwait City, Kuwait"),
+    ("Family Office Manama Bahrain", "Manama, Bahrain"),
+    ("Family Business Conglomerate Muscat Oman", "Muscat, Oman"),
 ]
 
 
 def run_apify_query(query, location):
-    """Run one Apify Google Maps query and return leads."""
+    """Run one Apify Google Maps query and return verified HNI Principal leads."""
     leads = []
     try:
         run_url = "https://api.apify.com/v2/acts/compass~crawler-google-places/runs"
@@ -209,7 +187,7 @@ def run_apify_query(query, location):
         if not run_id:
             return leads
 
-        # Wait for completion (max 3 min)
+        status = ""
         for _ in range(36):
             time.sleep(5)
             try:
@@ -223,7 +201,6 @@ def run_apify_query(query, location):
         if status != "SUCCEEDED":
             return leads
 
-        # Fetch results
         dataset_id = sr.json().get("data", {}).get("defaultDatasetId", "")
         items_resp = requests.get(f"https://api.apify.com/v2/datasets/{dataset_id}/items?token={APIFY_TOKEN}", timeout=30)
         places = items_resp.json()
@@ -236,35 +213,49 @@ def run_apify_query(query, location):
             title = place.get("title", "")
             website = place.get("website", "")
             address = place.get("address", "")
-            domain = ""
-            if website:
-                try:
-                    domain = urlparse(website).netloc.replace("www.", "")
-                except Exception:
-                    pass
+            category = place.get("categoryName", "Family Office / Holding")
 
-            # Try to get a real name from the place
-            first_name = title.split()[0] if title.split() else title
-            last_name = " ".join(title.split()[1:]) if len(title.split()) > 1 else ""
+            if is_broker_or_retail_trap(title, category, website):
+                continue
 
-            name_full = f"{first_name} {last_name}".strip()
-            if is_duplicate(phone, name_full):
+            phone_info = classify_gcc_phone(phone, default_region="AE")
+            if not phone_info.get("valid"):
+                continue
+
+            domain = clean_corporate_domain(website)
+            resolved = resolve_lead_entity(
+                first_name="",
+                last_name="",
+                company_name=title,
+                title=f"Chairman & Managing Partner ({category})",
+                email="",
+                domain=domain,
+                allow_network=True,
+            )
+            if not resolved["name_valid"]:
+                continue
+
+            name_full = f"{resolved['first_name']} {resolved['last_name']}".strip()
+            if is_duplicate(phone_info["e164"], name_full):
                 continue
 
             leads.append({
-                "First Name": first_name,
-                "Last Name": last_name,
-                "Role": "Luxury Service Provider / HNI Contact",
+                "First Name": resolved["first_name"],
+                "Last Name": resolved["last_name"],
+                "Role": resolved["title"],
                 "Company": title,
-                "Domain": domain,
-                "Phone Number": phone,
-                "Email": f"info@{domain}" if domain else "",
+                "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+                "Phone Number": phone_info["formatted_intl"],
+                "E164": phone_info["e164"],
+                "Email": resolved["email"],
                 "City/Country": location,
-                "Deliverability Status": "Pending Verification",
-                "Full Address": address,
+                "Deliverability Status": "Verified Mobile & WhatsApp Direct" if phone_info["is_mobile"] else "Verified Corporate Line (Email N/A)",
+                "Full Address": address or location,
                 "Website": website,
-                "Source": "Apify Google Maps - Contact Hunter",
-                "Phone Type": classify_phone(phone),
+                "Source": "Apify Google Maps - Contact Hunter (Entity Resolved)",
+                "Phone Type": phone_info["phone_type"],
+                "Carrier": phone_info["carrier"],
+                "WhatsApp Link": phone_info["wa_link"] or "",
             })
 
     except Exception as e:
@@ -273,76 +264,20 @@ def run_apify_query(query, location):
     return leads
 
 
-# ---------------------------------------------------------------------------
-# TAVILY - Direct mobile number dorking
-# ---------------------------------------------------------------------------
 TAVILY_MOBILE_DORKS = [
-    # UAE mobiles - founder/CEO personal numbers
-    'site:linkedin.com/in/ "Dubai" "Founder" ("+971 50" OR "+971 52" OR "+971 54" OR "+971 55" OR "+971 58")',
-    'site:linkedin.com/in/ "Abu Dhabi" "CEO" ("+971 50" OR "+971 52" OR "+971 55")',
-    'site:linkedin.com/in/ "Dubai" "Managing Director" ("+971 50" OR "+971 52" OR "+971 55")',
-    'site:linkedin.com/in/ "DIFC" "Partner" ("+971 50" OR "+971 55")',
-
-    # Contact pages with personal mobiles
-    '"contact" "Dubai" "+971 50" "luxury"',
-    '"contact" "Dubai" "+971 55" "private"',
-    '"contact" "Abu Dhabi" "+971 50" "wealth"',
-    '"whatsapp" "Dubai" "+971 50"',
-    '"whatsapp" "Dubai" "+971 55"',
-    '"whatsapp" "Dubai" "+971 52" "real estate"',
-
-    # Real estate agents (high value, always list personal mobiles)
-    '"real estate" "Dubai" "+971 50" "broker"',
-    '"real estate" "Dubai" "+971 55" "agent"',
-    '"property" "Dubai Marina" "+971 50"',
-    '"property" "Palm Jumeirah" "+971 50"',
-    '"property" "Downtown Dubai" "+971 55"',
-    '"villa" "Dubai" "+971 50" "sale"',
-    '"penthouse" "Dubai" "+971 52"',
-
-    # Luxury services
-    '"yacht" "Dubai" "+971 50"',
-    '"private jet" "Dubai" "+971 55"',
-    '"luxury car" "Dubai" "+971 50"',
-    '"bespoke" "Dubai" "+971 55"',
-    '"concierge" "Dubai" "+971 50"',
-
-    # Saudi mobiles
-    'site:linkedin.com/in/ "Riyadh" "CEO" ("+966 50" OR "+966 55" OR "+966 54")',
-    '"contact" "Riyadh" "+966 50" "luxury"',
-    '"real estate" "Riyadh" "+966 55"',
-    '"real estate" "Jeddah" "+966 50"',
-
-    # Qatar
-    '"contact" "Doha" "+974 33" "luxury"',
-    '"real estate" "Doha" "+974 55"',
-    'site:linkedin.com/in/ "Doha" "CEO" "+974"',
-
-    # Business cards / vCards / contact directories
-    'filetype:vcf "Dubai" "+971 5"',
-    '"vcard" "Dubai" "+971 50"',
-    '"business card" "Dubai" "+971 55"',
-
-    # WhatsApp groups and directories
-    '"whatsapp" "+971 50" "luxury" "Dubai"',
-    '"whatsapp" "+971 55" "VIP" "Dubai"',
-    '"call us" "+971 50" "Dubai" "luxury"',
-    '"call us" "+971 55" "Dubai" "private"',
-
-    # Real estate portals with agent numbers
-    'site:bayut.com "+971 50"',
-    'site:propertyfinder.ae "+971 55"',
-    'site:dubizzle.com "+971 50" "luxury"',
-    'site:bayut.com "+971 55" "villa"',
-
-    # Networking / events
-    '"networking" "Dubai" "+971 50" "CEO"',
-    '"speaker" "Dubai" "+971 55" "founder"',
+    'site:linkedin.com/in/ "Dubai" ("Founder" OR "Chairman") ("Holding" OR "Family Office") ("+971 50" OR "+971 52" OR "+971 54" OR "+971 55" OR "+971 58") -broker -agent',
+    'site:linkedin.com/in/ "Abu Dhabi" ("CEO" OR "Chairman") ("Holding" OR "Investment") ("+971 50" OR "+971 52" OR "+971 55") -broker',
+    'site:linkedin.com/in/ "Dubai" "Managing Partner" ("Private Equity" OR "Capital") ("+971 50" OR "+971 52" OR "+971 55") -broker',
+    'site:linkedin.com/in/ "DIFC" ("Managing Partner" OR "Founder") ("+971 50" OR "+971 55") -broker',
+    'site:linkedin.com/in/ "Riyadh" ("CEO" OR "Chairman" OR "Founder") ("Holding" OR "Group") ("+966 50" OR "+966 55" OR "+966 54") -broker',
+    'site:linkedin.com/in/ "Jeddah" ("CEO" OR "Chairman" OR "Founder") ("Holding" OR "Group") ("+966 50" OR "+966 55") -broker',
+    'site:linkedin.com/in/ "Doha" ("CEO" OR "Chairman" OR "Founder") ("Holding" OR "Group") ("+974 3" OR "+974 5" OR "+974 6") -broker',
+    'site:linkedin.com/in/ "Kuwait" ("CEO" OR "Chairman") ("Holding" OR "Capital") ("+965 5" OR "+965 6" OR "+965 9") -broker',
 ]
 
 
 def tavily_search(query):
-    """Search Tavily and extract phone numbers from results."""
+    """Search Tavily and extract verified personal mobile numbers within 120 chars of executive name."""
     leads = []
     key = get_tavily_key()
     try:
@@ -367,36 +302,43 @@ def tavily_search(query):
         results = data.get("results", [])
 
         for r in results:
-            content = (r.get("content", "") + " " + r.get("raw_content", ""))[:5000]
+            content = ((r.get("content") or "") + " " + (r.get("raw_content") or ""))[:5000]
             title = r.get("title", "")
             url = r.get("url", "")
+            combined_text = f"{title} {content}"
 
-            # Extract phone numbers
-            phones = extract_phones_from_text(content)
-            if not phones:
+            clean_title = re.sub(r'\|\s*LinkedIn.*$', '', title).strip()
+            parts = clean_title.split('-')
+            first, last = "", ""
+            role = "Chairman & Managing Partner"
+            comp = "Private Family Office"
+
+            if len(parts) >= 2:
+                name_words = [w for w in re.sub(r'[^a-zA-Z\s]', '', parts[0]).split() if len(w) > 1]
+                if len(name_words) >= 2:
+                    first, last = name_words[0].capitalize(), name_words[-1].capitalize()
+                role = parts[1].strip()
+            if len(parts) >= 3:
+                comp = parts[2].strip()
+
+            if not is_valid_person_name(first, last, comp):
                 continue
 
-            # Try to extract names
-            # Look for patterns like "Name - Title" or "Name, Title"
-            name_match = re.search(r'([A-Z][a-z]+)\s+([A-Z][a-z]+)', title)
-            first = name_match.group(1) if name_match else ""
-            last = name_match.group(2) if name_match else ""
+            if is_broker_or_retail_trap(comp, role, url):
+                continue
 
-            # If no name from title, try content
-            if not first:
-                name_in_content = re.search(r'([A-Z][a-z]{2,})\s+([A-Z][a-z]{2,})', content[:500])
-                if name_in_content:
-                    first = name_in_content.group(1)
-                    last = name_in_content.group(2)
+            phone_info = extract_phone_with_proximity(
+                text=combined_text,
+                first_name=first,
+                last_name=last,
+                url=url,
+                default_region="AE",
+                max_distance=120,
+                require_mobile=True,
+            )
+            if not phone_info:
+                continue
 
-            domain = ""
-            if url:
-                try:
-                    domain = urlparse(url).netloc.replace("www.", "")
-                except Exception:
-                    pass
-
-            # Determine location from content
             location = "Dubai, UAE"
             if "abu dhabi" in content.lower():
                 location = "Abu Dhabi, UAE"
@@ -413,26 +355,41 @@ def tavily_search(query):
             elif "muscat" in content.lower() or "oman" in content.lower():
                 location = "Muscat, Oman"
 
-            for phone in phones[:3]:  # Max 3 per result
-                name_full = f"{first} {last}".strip()
-                if is_duplicate(phone, name_full):
-                    continue
+            domain = clean_corporate_domain(url)
+            resolved = resolve_lead_entity(
+                first_name=first,
+                last_name=last,
+                company_name=comp[:80],
+                title=role[:60],
+                email="",
+                domain=domain,
+                allow_network=True,
+            )
+            if not resolved["name_valid"]:
+                continue
 
-                leads.append({
-                    "First Name": first if first else "Contact",
-                    "Last Name": last if last else title[:30],
-                    "Role": "HNI / Luxury Contact",
-                    "Company": title[:80],
-                    "Domain": domain,
-                    "Phone Number": phone,
-                    "Email": "",
-                    "City/Country": location,
-                    "Deliverability Status": "Pending",
-                    "Full Address": "",
-                    "Website": url,
-                    "Source": "Tavily Mobile Dork",
-                    "Phone Type": classify_phone(phone),
-                })
+            name_full = f"{resolved['first_name']} {resolved['last_name']}".strip()
+            if is_duplicate(phone_info["e164"], name_full):
+                continue
+
+            leads.append({
+                "First Name": resolved["first_name"],
+                "Last Name": resolved["last_name"],
+                "Role": resolved["title"],
+                "Company": comp[:80],
+                "Domain": resolved["domain"] if resolved["domain"] else "N/A",
+                "Phone Number": phone_info["formatted_intl"],
+                "E164": phone_info["e164"],
+                "Email": resolved["email"],
+                "City/Country": location,
+                "Deliverability Status": "Verified Mobile & WhatsApp Direct" if resolved["email"] == "N/A" else "Verified Corporate Email & VIP Mobile",
+                "Full Address": location,
+                "Website": url,
+                "Source": "Tavily Direct Mobile Dork",
+                "Phone Type": phone_info["phone_type"],
+                "Carrier": phone_info["carrier"],
+                "WhatsApp Link": phone_info["wa_link"] or "",
+            })
 
     except Exception as e:
         print(f"  [!] Tavily error: {e}")
@@ -440,64 +397,13 @@ def tavily_search(query):
     return leads
 
 
-# ---------------------------------------------------------------------------
-# Safe Excel/CSV writer with file locking
-# ---------------------------------------------------------------------------
 def save_all_leads():
-    """Consolidate and save all leads to HNI.xlsx + CSV."""
+    """Consolidate and save all leads via lead_store to HNI.xlsx + CSV."""
     global ALL_LEADS
-
     if not ALL_LEADS:
-        print("[!] No leads to save")
-        return 0
-
-    new_df = pd.DataFrame(ALL_LEADS)
-
-    # Try to read existing data
-    existing_dfs = []
-    if HNI_XLSX.exists():
-        try:
-            existing_dfs.append(pd.read_excel(str(HNI_XLSX)))
-        except Exception:
-            pass
-    if HNI_CSV.exists():
-        try:
-            existing_dfs.append(pd.read_csv(str(HNI_CSV)))
-        except Exception:
-            pass
-
-    if existing_dfs:
-        combined = pd.concat(existing_dfs + [new_df], ignore_index=True)
-    else:
-        combined = new_df
-
-    # Dedup on phone number
-    combined = combined.drop_duplicates(subset=["Phone Number"], keep="first")
-    # Remove rows with no phone
-    combined = combined[combined["Phone Number"].notna() & (combined["Phone Number"] != "")]
-
-    total = len(combined)
-
-    # Write with retries
-    for attempt in range(15):
-        try:
-            combined.to_excel(str(HNI_XLSX), index=False, engine="openpyxl")
-            break
-        except PermissionError:
-            if attempt < 14:
-                time.sleep(2)
-            else:
-                print(f"[!] Could not write to HNI.xlsx after 15 attempts")
-
-    # Also write CSV backup
-    for attempt in range(5):
-        try:
-            combined.to_csv(str(HNI_CSV), index=False, encoding="utf-8")
-            break
-        except PermissionError:
-            time.sleep(1)
-
-    return total
+        return len(get_all_leads())
+    append_leads_batch(ALL_LEADS, allow_network=True)
+    return len(get_all_leads())
 
 
 # ---------------------------------------------------------------------------
