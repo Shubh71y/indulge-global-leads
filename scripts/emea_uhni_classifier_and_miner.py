@@ -598,77 +598,91 @@ def mine_live_emea_boolean_strings() -> List[Dict[str, Any]]:
 
     api_key = keys[0]
     discovered: List[Dict[str, Any]] = []
+    from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    for query, source_label, seg_tag in EMEA_BOOLEAN_SEARCH_STRINGS:
+    def _fetch_emea_query(idx_item):
+        idx, (query, source_label, seg_tag) = idx_item
+        key = tavily_keys[idx % len(tavily_keys)]
+        hits = []
         try:
             resp = requests.post(
                 "https://api.tavily.com/search",
                 json={
-                    "api_key": api_key,
+                    "api_key": key,
                     "query": query,
                     "search_depth": "basic",
-                    "max_results": 5,
+                    "max_results": 8,
                 },
-                timeout=8,
+                timeout=10,
             )
-            if resp.status_code != 200:
-                continue
-            for r in resp.json().get("results", []):
-                title = r.get("title", "")
-                content = r.get("content", "")
-                m = re.match(
-                    r"^([A-Z][a-z]+)\s+([A-Z][a-z]+)\s*[-–|]\s*([^-–|]+?)(?:\s+at\s+|\s*[-–|]\s*)([^-–|]+)",
-                    title,
-                )
-                if not m:
-                    continue
-                fn, ln, role, comp = (
-                    m.group(1).strip(),
-                    m.group(2).strip(),
-                    m.group(3).strip(),
-                    m.group(4).strip(),
-                )
-                gate_res = evaluate_5_gate_hni_classification(
-                    title=role,
-                    company=comp,
-                    headcount=10,
-                    address=content,
-                    wealth_signal=source_label,
-                )
-                if not gate_res["passed"]:
-                    continue
+            if resp.status_code == 200:
+                for r in resp.json().get("results", []):
+                    title = r.get("title", "")
+                    content = r.get("content", "")
+                    m = re.match(
+                        r"^([A-Z][a-z]+)\s+([A-Z][a-z]+)\s*[-–|]\s*([^-–|]+?)(?:\s+at\s+|\s*[-–|]\s*)([^-–|]+)",
+                        title,
+                    )
+                    if not m:
+                        continue
+                    fn, ln, role, comp = (
+                        m.group(1).strip(),
+                        m.group(2).strip(),
+                        m.group(3).strip(),
+                        m.group(4).strip(),
+                    )
+                    gate_res = evaluate_5_gate_hni_classification(
+                        title=role,
+                        company=comp,
+                        headcount=10,
+                        address=content,
+                        wealth_signal=source_label,
+                    )
+                    if not gate_res["passed"]:
+                        continue
 
-                p_info = extract_phone_with_proximity(
-                    f"{title} {content}",
-                    first_name=fn,
-                    last_name=ln,
-                    url=r.get("url", ""),
-                    default_region="GB",
-                    max_distance=120,
-                    require_mobile=True,
-                )
-                if not p_info or not p_info.get("valid"):
-                    continue
+                    p_info = extract_phone_with_proximity(
+                        f"{title} {content}",
+                        first_name=fn,
+                        last_name=ln,
+                        url=r.get("url", ""),
+                        default_region="GB",
+                        max_distance=120,
+                        require_mobile=True,
+                    )
+                    if not p_info or not p_info.get("valid"):
+                        continue
 
-                discovered.append(
-                    {
-                        "First Name": fn,
-                        "Last Name": ln,
-                        "Role": role[:80],
-                        "Company": comp[:80],
-                        "Domain": "N/A",
-                        "Phone Number": p_info["formatted_intl"],
-                        "Email": "N/A",
-                        "City/Country": p_info.get("country_name", "United Kingdom"),
-                        "Full Address": p_info.get("country_name", "United Kingdom"),
-                        "Source": source_label,
-                        "Wealth Signal": f"🇪🇺 {gate_res['tier']} ({source_label})",
-                        "Pitch Angle": "Pitch: Courchevel / St. Moritz Chalets, Monaco F1 & 24/7 WhatsApp Desk",
-                        "Segment Tag": seg_tag,
-                    }
-                )
+                    hits.append(
+                        {
+                            "First Name": fn,
+                            "Last Name": ln,
+                            "Role": role[:80],
+                            "Company": comp[:80],
+                            "Domain": "N/A",
+                            "Phone Number": p_info["formatted_intl"],
+                            "Email": "N/A",
+                            "City/Country": p_info.get("country_name", "United Kingdom"),
+                            "Full Address": p_info.get("country_name", "United Kingdom"),
+                            "Source": source_label,
+                            "Wealth Signal": f"🇪🇺 {gate_res['tier']} ({source_label})",
+                            "Pitch Angle": "Pitch: Courchevel / St. Moritz Chalets, Monaco F1 & 24/7 WhatsApp Desk",
+                            "Segment Tag": seg_tag,
+                        }
+                    )
         except Exception:
-            continue
+            pass
+        return hits
+
+    with ThreadPoolExecutor(max_workers=min(len(EMEA_BOOLEAN_SEARCH_STRINGS), 5)) as pool:
+        futures = [pool.submit(_fetch_emea_query, (i, q)) for i, q in enumerate(EMEA_BOOLEAN_SEARCH_STRINGS)]
+        for fut in as_completed(futures):
+            try:
+                res = fut.result()
+                if res:
+                    discovered.extend(res)
+            except Exception:
+                pass
 
     return discovered
 

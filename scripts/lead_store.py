@@ -623,14 +623,56 @@ def append_lead(lead_dict: Dict[str, Any], allow_network: bool = False) -> bool:
 
 
 def append_leads_batch(leads_list: List[Dict[str, Any]], allow_network: bool = False) -> int:
-    """Append multiple validated leads and sync to Excel/CSV."""
-    added = 0
+    """High-speed batch append with single disk read, in-memory deduplication, and atomic write."""
+    if not leads_list:
+        return 0
+
+    existing_phones = set()
+    existing_persons = set()
+    if JSONL_PATH.exists():
+        with open(JSONL_PATH, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    obj = json.loads(line.strip())
+                    p = re.sub(r'[^\d+]', '', str(obj.get("E164") or obj.get("Phone Number", "")))
+                    if p:
+                        existing_phones.add(p)
+                    pk = f"{str(obj.get('First Name', '')).lower()}_{str(obj.get('Last Name', '')).lower()}"
+                    existing_persons.add(pk)
+                except Exception:
+                    pass
+
+    to_append = []
     for lead in leads_list:
-        if append_lead(lead, allow_network=allow_network):
-            added += 1
-    if added > 0:
-        sync_to_excel_and_csv()
-    return added
+        sanitized = sanitize_lead_record(lead, allow_network=allow_network)
+        if not sanitized:
+            continue
+        e164_key = re.sub(r'[^\d+]', '', sanitized.get("E164") or sanitized.get("Phone Number", ""))
+        person_key = f"{sanitized['First Name'].lower()}_{sanitized['Last Name'].lower()}"
+        if e164_key in existing_phones or person_key in existing_persons:
+            continue
+        if e164_key:
+            existing_phones.add(e164_key)
+        existing_persons.add(person_key)
+        to_append.append(sanitized)
+
+    if not to_append:
+        return 0
+
+    # Write all new lines to JSONL in a single disk flush
+    with open(JSONL_PATH, "a", encoding="utf-8") as f:
+        for item in to_append:
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+    # Real-time reflection to Google Sheet (single asynchronous batch)
+    try:
+        from scripts.google_sheets_sync import push_batch_async
+        push_batch_async(to_append)
+    except Exception:
+        pass
+
+    sync_to_excel_and_csv()
+    return len(to_append)
 
 
 def get_all_leads() -> List[Dict[str, Any]]:

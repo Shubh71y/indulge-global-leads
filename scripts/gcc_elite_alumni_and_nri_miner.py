@@ -1104,22 +1104,21 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
                     reg,
                 ),
             )
-        for idx, (dq, loc_label, reg_code) in enumerate(dorks, 1):
-            print(f"[*] [10-Source NRI OSINT {idx}/{len(dorks)}] Scanning {loc_label}: {dq[:68]}...", flush=True)
-            for key_attempt in range(len(tavily_keys)):
-                api_key = tavily_keys[(idx + key_attempt) % len(tavily_keys)]
-                try:
-                    resp = requests.post(
-                        "https://api.tavily.com/search",
-                        json={"api_key": api_key, "query": dq, "search_depth": "basic", "max_results": 8},
-                        timeout=12,
-                    )
-                    if resp.status_code in (401, 403, 429):
-                        continue
-                    if resp.status_code != 200:
-                        break
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+
+        def _fetch_dork(dork_item):
+            idx, (dq, loc_label, reg_code) = dork_item
+            api_key = tavily_keys[idx % len(tavily_keys)]
+            dork_hits = []
+            try:
+                print(f"[*] [10-Source NRI OSINT] Fast scan {loc_label}: {dq[:68]}...", flush=True)
+                resp = requests.post(
+                    "https://api.tavily.com/search",
+                    json={"api_key": api_key, "query": dq, "search_depth": "basic", "max_results": 10},
+                    timeout=10,
+                )
+                if resp.status_code == 200:
                     results = resp.json().get("results", [])
-                    print(f"    -> Retrieved {len(results)} NRI diaspora profiles in {loc_label}", flush=True)
                     for r in results:
                         title = r.get("title", "")
                         content = r.get("content", "")
@@ -1147,7 +1146,7 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
                         if not p_info or not p_info.get("valid"):
                             continue
                         print(f"    [+] Live NRI Hit: {fn} {ln} | {p_info['formatted_intl']} | {comp}", flush=True)
-                        raw_leads.append(
+                        dork_hits.append(
                             {
                                 "First Name": fn,
                                 "Last Name": ln,
@@ -1163,11 +1162,19 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
                                 "Segment Tag": "nri_diaspora",
                             }
                         )
-                    break
-                except Exception as e:
-                    print(f"    [!] Tavily warning: {e}", flush=True)
-                    break
-            time.sleep(0.4)
+            except Exception:
+                pass
+            return dork_hits
+
+        with ThreadPoolExecutor(max_workers=min(len(dorks), 6)) as pool:
+            futures = [pool.submit(_fetch_dork, (idx, dork)) for idx, dork in enumerate(dorks, 1)]
+            for fut in as_completed(futures):
+                try:
+                    hits = fut.result()
+                    if hits:
+                        raw_leads.extend(hits)
+                except Exception:
+                    pass
 
     verified_batch = []
     passed_3_signal = 0

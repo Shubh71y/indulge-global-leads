@@ -1579,17 +1579,26 @@ def run_6_source_uhni_miner():
                 return True
         return False
 
+    # Only verify leads that are not yet verified to prevent massive network bottlenecks
+    unverified_leads = [
+        lead for lead in existing_leads
+        if not ("Valid" in str(lead.get("Deliverability Status", "")) or "Verified" in str(lead.get("Deliverability Status", "")))
+        and (str(lead.get("Email", "")) not in ("N/A", "") or str(lead.get("Domain", "")) not in ("N/A", ""))
+    ]
     azure_ad_verified_count = 0
-    with ThreadPoolExecutor(max_workers=20) as pool:
-        futures = [pool.submit(_verify_lead_email, lead) for lead in existing_leads]
-        for fut in as_completed(futures):
-            try:
-                if fut.result():
-                    azure_ad_verified_count += 1
-            except Exception:
-                pass
-
-    print(f"[+] Verified {azure_ad_verified_count} executive corporate emails via Microsoft 365 Azure AD (HTTPS Port 443)")
+    if unverified_leads:
+        print(f"[*] Running Microsoft 365 Azure AD Zero-Bounce Verification on {len(unverified_leads)} unverified leads...")
+        with ThreadPoolExecutor(max_workers=15) as pool:
+            futures = [pool.submit(_verify_lead_email, lead) for lead in unverified_leads]
+            for fut in as_completed(futures):
+                try:
+                    if fut.result():
+                        azure_ad_verified_count += 1
+                except Exception:
+                    pass
+        print(f"[+] Verified {azure_ad_verified_count} executive corporate emails via Microsoft 365 Azure AD")
+    else:
+        print("[*] All leads already verified with Azure AD & E.164 Mobile Hygiene. Skipping redundant probes.")
 
     # Sort VIP Personal Mobile first, then Azure AD Verified emails
     existing_leads.sort(

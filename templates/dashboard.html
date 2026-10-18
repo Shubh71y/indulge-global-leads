@@ -1756,6 +1756,47 @@ tr:hover td {
   </div>
 </div>
 
+<!-- MODAL: LIVE MINER ACTIVITY & REAL-TIME TERMINAL LOGS -->
+<div class="modal-overlay" id="minerTerminalModal" style="display: none;">
+  <div class="modal-card" style="max-width: 820px; background: #0E131F; color: #E2E8F0; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);">
+    <div class="modal-header" style="border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 14px;">
+      <div class="modal-title" style="color: #FFFFFF; display: flex; align-items: center; gap: 10px; font-size: 15px;">
+        <span class="sync-pulse-dot" id="terminalPulseDot"></span>
+        <span id="terminalTitle">⚡ High-Speed UHNI Mining Engine Active</span>
+      </div>
+      <div class="btn-circle" style="width: 32px; height: 32px; background: rgba(255,255,255,0.1); color: #FFF; border: none; cursor: pointer;" onclick="closeMinerTerminal()"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+
+    <!-- Live Metrics Strip -->
+    <div style="display: flex; gap: 12px; margin-top: 14px; margin-bottom: 14px;">
+      <div style="flex: 1; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 11px; color: #94A3B8;">Engine Status</div>
+        <div style="font-size: 13px; font-weight: 700; color: #34D399;" id="terminalStatusText">Running Parallel OSINT Searches</div>
+      </div>
+      <div style="flex: 1; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 11px; color: #94A3B8;">Worker Process</div>
+        <div style="font-size: 13px; font-weight: 700; color: #F1F5F9;" id="terminalPidText">PID: —</div>
+      </div>
+      <div style="flex: 1; background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+        <div style="font-size: 11px; color: #94A3B8;">Real-Time Reflection</div>
+        <div style="font-size: 13px; font-weight: 700; color: #60A5FA;">HNI.xlsx & Google Sheet</div>
+      </div>
+    </div>
+
+    <!-- Real-Time Monospace Terminal Window -->
+    <div id="terminalLogBox" style="background: #060911; border-radius: 14px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; color: #A7F3D0; height: 320px; overflow-y: auto; border: 1px solid rgba(255,255,255,0.06); white-space: pre-wrap; word-break: break-all;">
+[*] Initializing high-speed concurrent miner worker...
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
+      <span style="font-size: 11px; color: #64748B;">Auto-scrolls in real-time · Live output stream</span>
+      <button class="btn-coral-pill" style="padding: 8px 20px; font-size: 12px; background: rgba(255,255,255,0.15); color: #FFF;" onclick="closeMinerTerminal()" id="btnTerminalAction">
+        <span>Close Window</span>
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast-notice" id="toastBox">
   <i class="fa-solid fa-circle-check" style="color: var(--coral);"></i>
@@ -2094,15 +2135,82 @@ function toggleMinerModal() {
   m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
 }
 
+let currentMinerInterval = null;
+
+function openMinerTerminal(initialMsg, pid) {
+  const m = document.getElementById('minerTerminalModal');
+  if (m) m.style.display = 'flex';
+  const box = document.getElementById('terminalLogBox');
+  if (box) box.textContent = initialMsg || "[*] Worker initialized...\n";
+  const st = document.getElementById('terminalStatusText');
+  if (st) {
+    st.textContent = "Running Parallel Search";
+    st.style.color = "#34D399";
+  }
+  const pidEl = document.getElementById('terminalPidText');
+  if (pidEl) pidEl.textContent = pid ? `PID: ${pid}` : "PID: Launching...";
+}
+
+function closeMinerTerminal() {
+  const m = document.getElementById('minerTerminalModal');
+  if (m) m.style.display = 'none';
+  if (currentMinerInterval) {
+    clearInterval(currentMinerInterval);
+    currentMinerInterval = null;
+  }
+}
+
+function trackMinerLogs(pid) {
+  if (currentMinerInterval) clearInterval(currentMinerInterval);
+  const pidEl = document.getElementById('terminalPidText');
+  if (pidEl) pidEl.textContent = `PID: ${pid}`;
+
+  currentMinerInterval = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/miners/${pid}/logs`);
+      if (res.ok) {
+        const d = await res.json();
+        const box = document.getElementById('terminalLogBox');
+        if (box && d.log_lines && d.log_lines.length > 0) {
+          box.textContent = d.log_lines.join('\n');
+          box.scrollTop = box.scrollHeight;
+        }
+      }
+      
+      const minRes = await fetch('/api/miners');
+      if (minRes.ok) {
+        const minData = await minRes.json();
+        const list = Array.isArray(minData) ? minData : (minData.miners || []);
+        const thisMiner = list.find(m => m.pid === pid);
+        if (thisMiner && (thisMiner.status === 'finished' || thisMiner.status === 'killed')) {
+          clearInterval(currentMinerInterval);
+          currentMinerInterval = null;
+          const st = document.getElementById('terminalStatusText');
+          if (st) {
+            st.textContent = "✅ Finished — Synced to Sheets & DB";
+            st.style.color = "#10B981";
+          }
+          const btn = document.getElementById('btnTerminalAction');
+          if (btn) btn.innerHTML = `<span>View Updated Leads (${leadsData.length})</span>`;
+          await loadLeads();
+          showToast(`⚡ Miner complete! Total dataset: ${leadsData.length} leads.`);
+        }
+      }
+    } catch (e) {
+      // ignore poll error
+    }
+  }, 900);
+}
+
 async function executeMinerTrigger() {
   const srcSelect = document.getElementById('minerSourceTypeInput');
-  const minerType = srcSelect ? srcSelect.value : 'uhni_6_sources';
+  const minerType = srcSelect ? srcSelect.value : 'gcc_alumni_nri';
   const loc = document.getElementById('minerLocationInput').value;
   const query = document.getElementById('minerQueryInput').value;
   const target = parseInt(document.getElementById('minerTargetCount').value) || 1000;
 
   toggleMinerModal();
-  showToast(`🚀 Dispatched 6-Source UHNI Miner for ${loc}!`);
+  openMinerTerminal(`[*] Launching ${minerType.toUpperCase()} Engine for ${loc}...\n[*] Deploying concurrent multi-key workers...\n`);
 
   try {
     const res = await fetch('/api/mine', {
@@ -2117,7 +2225,10 @@ async function executeMinerTrigger() {
     });
     const d = await res.json();
     if (d && d.pid) {
-      showToast(`UHNI Miner running in background (PID: ${d.pid})`);
+      trackMinerLogs(d.pid);
+      showToast(`⚡ High-speed miner started (PID: ${d.pid})`);
+    } else {
+      showToast("Miner run initiated!");
     }
   } catch(e) {
     showToast("Miner run dispatched in background!");

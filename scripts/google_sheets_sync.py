@@ -187,6 +187,32 @@ def push_single_lead_async(lead_dict: Dict[str, Any], webhook_url: Optional[str]
     t.start()
 
 
+def push_batch_async(leads_batch: List[Dict[str, Any]], webhook_url: Optional[str] = None):
+    """Fire-and-forget asynchronous batch push for newly discovered leads."""
+    target_url = webhook_url or get_configured_webhook_url()
+    if not target_url or not leads_batch:
+        return
+
+    def _worker():
+        try:
+            for i in range(0, len(leads_batch), 50):
+                chunk = leads_batch[i : i + 50]
+                requests.post(
+                    target_url,
+                    json={"action": "sync_leads", "leads": chunk},
+                    headers={"Content-Type": "application/json"},
+                    timeout=20,
+                    allow_redirects=True,
+                )
+                time.sleep(0.2)
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Indulge Global Google Sheets Sync Engine")
