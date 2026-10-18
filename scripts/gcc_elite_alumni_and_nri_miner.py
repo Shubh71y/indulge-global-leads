@@ -1090,7 +1090,33 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
     raw_leads = get_verified_global_nri_uhni_leads()
     print(f"[*] Auditing {len(raw_leads)} Curated 10-Source NRI Billionaire & UHNI Profiles...", flush=True)
 
-    # Live Tavily OSINT enrichment across all 5 global NRI corridors & 10 sources
+    # 1. Live Firecrawl Discovery: Indiaspora Members, AAHOA Hotel Barons & Forbes Middle East Billionaires
+    try:
+        from scripts.firecrawl_nri_directory_scraper import (
+            scrape_indiaspora_members,
+            scrape_aahoa_directors,
+            scrape_forbes_middle_east_indian_leaders,
+            scrape_apify_luxury_places,
+        )
+        fc_indiaspora = scrape_indiaspora_members()
+        if fc_indiaspora:
+            raw_leads.extend(fc_indiaspora)
+        fc_aahoa = scrape_aahoa_directors()
+        if fc_aahoa:
+            raw_leads.extend(fc_aahoa)
+        fc_forbes = scrape_forbes_middle_east_indian_leaders()
+        if fc_forbes:
+            raw_leads.extend(fc_forbes)
+        apify_places = scrape_apify_luxury_places(
+            location=target_location or "Dubai, UAE",
+            query=target_query or "Family Office"
+        )
+        if apify_places:
+            raw_leads.extend(apify_places)
+    except Exception as e:
+        print(f"  [!] Live Firecrawl/Apify directory discovery notice: {e}", flush=True)
+
+    # 2. Live Tavily OSINT enrichment across all 5 global NRI corridors & 10 sources
     tavily_keys = [k.strip() for k in os.environ.get("TAVILY_API_KEYS", "").split(",") if k.strip()]
     if tavily_keys:
         dorks = list(GLOBAL_NRI_DORK_QUERIES)
@@ -1099,7 +1125,7 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
             dorks.insert(
                 0,
                 (
-                    f'({target_query}) ("{target_location or "London"}") ("IIT" OR "IIM" OR "TiE" OR "Indiaspora" OR "AAHOA" OR "AAPI" OR "Family Office") site:linkedin.com/in/',
+                    f'({target_query}) ("{target_location or "London"}") ("IIT" OR "IIM" OR "TiE" OR "Indiaspora" OR "AAHOA" OR "AAPI" OR "Family Office")',
                     target_location or "London, United Kingdom",
                     reg,
                 ),
@@ -1141,7 +1167,7 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
                             url=r.get("url", ""),
                             default_region=reg_code,
                             max_distance=140,
-                            require_mobile=True,
+                            require_mobile=False,
                         )
                         if not p_info or not p_info.get("valid"):
                             continue
@@ -1202,7 +1228,7 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
 
         region = infer_region_from_location(lead.get("City/Country", "Dubai, UAE"))
         p_info = classify_gcc_phone(lead.get("Phone Number", ""), default_region=region)
-        if not p_info.get("valid") or not p_info.get("is_mobile"):
+        if not p_info.get("valid"):
             continue
 
         domain = clean_corporate_domain(lead.get("Domain", ""))
@@ -1219,14 +1245,14 @@ def run_gcc_alumni_and_nri_miner(target_location=None, target_query=None):
         lead["Phone Type"] = p_info["phone_type"]
         lead["Carrier"] = p_info["carrier"]
         lead["WhatsApp Link"] = p_info["wa_link"]
-        lead["WhatsApp Verified"] = "True"
+        lead["WhatsApp Verified"] = "True" if p_info.get("is_mobile") else "False"
         lead["Domain"] = domain if domain else "N/A"
         lead["Email"] = email_res["email"]
         lead["Deliverability Status"] = email_res["deliverability_status"]
         lead["Segment Tag"] = "nri_diaspora"
         verified_batch.append(lead)
 
-    print(f"[*] 3-Signal Algorithmic NRI Scorer passed {passed_3_signal}/{len(raw_leads)} profiles ({len(verified_batch)} with E.164 VIP Mobile).", flush=True)
+    print(f"[*] 3-Signal Algorithmic NRI Scorer passed {passed_3_signal}/{len(raw_leads)} profiles ({len(verified_batch)} verified contact lines).", flush=True)
     added = append_leads_batch(verified_batch, allow_network=False)
     total_now = len(get_all_leads())
     print(f"[+] 5-Corridor, 10-Source NRI Miner complete: {added} new NRI leads added to HNI.xlsx (Total dataset: {total_now}).", flush=True)

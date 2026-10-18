@@ -28,7 +28,7 @@ def sync_and_load_env():
     """Loads environment variables strictly from indulge/.env."""
     indulge_vars = _parse_env_file(INDULGE_ENV)
     for k, v in indulge_vars.items():
-        if k and k not in os.environ:
+        if k:
             os.environ[k] = v
 
 

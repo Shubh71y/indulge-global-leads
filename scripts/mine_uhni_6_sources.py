@@ -1517,6 +1517,22 @@ def run_6_source_uhni_miner():
     print("=" * 80)
 
     candidates = list(SIX_SOURCE_VERIFIED_UHNIS)
+
+    # Live Firecrawl & Apify Discovery
+    try:
+        from scripts.firecrawl_nri_directory_scraper import scrape_indiaspora_members, scrape_aahoa_directors, scrape_apify_luxury_places
+        fc_indiaspora = scrape_indiaspora_members()
+        if fc_indiaspora:
+            candidates.extend(fc_indiaspora)
+        fc_aahoa = scrape_aahoa_directors()
+        if fc_aahoa:
+            candidates.extend(fc_aahoa)
+        apify_places = scrape_apify_luxury_places(location="Dubai, UAE", query="Family Office")
+        if apify_places:
+            candidates.extend(apify_places)
+    except Exception as e:
+        print(f"  [!] Live Firecrawl/Apify directory discovery notice: {e}", flush=True)
+
     live_osint = query_live_6_sources_osint()
     if live_osint:
         print(f"[+] Discovered {len(live_osint)} additional proximity-verified mobile leads via live OSINT")
@@ -1616,6 +1632,15 @@ def run_6_source_uhni_miner():
 
     total = sync_to_excel_and_csv()
     format_excel_file(str(EXCEL_PATH))
+
+    # Real-time reflection to Google Sheet (non-destructive sync)
+    if added_count > 0:
+        try:
+            from scripts.google_sheets_sync import push_batch_async
+            push_batch_async(existing_leads[-added_count:])
+            print(f"[+] Real-Time Google Sheet CRM Sync: Dispatched {added_count} new leads to sheet.")
+        except Exception:
+            pass
 
     # Breakdown by segment
     seg_counts: Dict[str, int] = {}

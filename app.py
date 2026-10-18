@@ -27,6 +27,13 @@ import time
 from datetime import datetime
 from pathlib import Path
 
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+from scripts import env_loader
+env_loader.load_env()
+
 from flask import Flask, render_template, jsonify, request, Response
 
 # ---------------------------------------------------------------------------
@@ -403,17 +410,20 @@ def api_google_sheet_config():
 @app.route("/api/google-sheet/sync", methods=["POST"])
 def api_google_sheet_sync():
     """Trigger full sync of all leads to Google Sheets."""
-    from scripts import google_sheets_sync
-    leads = _read_hni_xlsx()
-    if not leads:
-        leads = _read_hni_csv()
-    
-    url = google_sheets_sync.get_configured_webhook_url()
-    if not url:
-        return jsonify({"success": False, "error": "No Google Sheet Webhook URL configured. Please configure it first."}), 400
+    try:
+        from scripts import google_sheets_sync
+        leads = _read_hni_xlsx()
+        if not leads:
+            leads = _read_hni_csv()
+        
+        url = google_sheets_sync.get_configured_webhook_url()
+        if not url:
+            return jsonify({"success": False, "error": "No Google Sheet Webhook URL configured. Please configure it first."}), 400
 
-    res = google_sheets_sync.sync_leads_to_google_sheet(leads=leads, webhook_url=url)
-    return jsonify(res)
+        res = google_sheets_sync.sync_leads_to_google_sheet(leads=leads, webhook_url=url)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
 
 
 @app.route("/api/google-sheet/code", methods=["GET"])
@@ -428,9 +438,9 @@ def api_google_sheet_code():
 
 
 def _generate_custom_miner(location, query, target_count):
-    """Generate a one-shot custom miner script using Tavily OSINT, 5-Gate Classifier, 120-Char Proximity Mobile, M365 Azure AD, and Apify."""
+    """Generate a high-yield custom miner script using Firecrawl, Apify Google Places, 5-Gate Classifier, and non-destructive Google Sheet CRM sync."""
     script_name = f"custom_miner_{int(time.time())}.py"
-    script_content = f'''# Auto-generated custom Global (US + EMEA) UHNI miner
+    script_content = f'''# Auto-generated custom Global (US + EMEA + NRI) UHNI miner
 import sys
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
@@ -444,82 +454,17 @@ if str(BASE_DIR) not in sys.path:
 
 load_dotenv(BASE_DIR / ".env")
 
-from scripts.phone_verifier import (
-    classify_gcc_phone,
-    clean_corporate_domain,
-    extract_phone_with_proximity,
-    infer_region_from_location,
-    is_broker_or_retail_trap,
-)
-from scripts.emea_uhni_classifier_and_miner import evaluate_5_gate_hni_classification
-from scripts.smtp_verifier import resolve_and_verify_corporate_email
-from scripts.lead_store import append_leads_batch, get_all_leads
+from scripts.firecrawl_nri_directory_scraper import run_live_firecrawl_and_apify_miner
+from scripts.gcc_elite_alumni_and_nri_miner import run_gcc_alumni_and_nri_miner
+from scripts.lead_store import get_all_leads
 
 location = """{location}"""
 query = """{query}"""
 target_count = {target_count}
-default_reg = infer_region_from_location(location)
 
-print(f"[*] Launching Custom UHNI Miner for Location='{{location}}' (Region={{default_reg}}), Query='{{query}}'...")
-
-keys_raw = os.getenv("TAVILY_API_KEYS", "") or os.getenv("TAVILY_API_KEY", "")
-tavily_keys = [k.strip() for k in keys_raw.split(",") if k.strip()]
-
-all_leads = []
-if tavily_keys:
-    dork_queries = [
-        f'({{query}}) ("{{location}}") ("Founder" OR "Chairman" OR "Managing Partner" OR "Family Office" OR "Chief of Staff") site:linkedin.com/in/',
-        f'({{query}}) ("{{location}}") ("+1" OR "+44" OR "+41" OR "+33" OR "+49" OR "+971" OR "+966" OR "wa.me")',
-    ]
-    for dq in dork_queries:
-        try:
-            resp = requests.post(
-                "https://api.tavily.com/search",
-                json={{"api_key": tavily_keys[0], "query": dq, "search_depth": "basic", "max_results": 8}},
-                timeout=12,
-            )
-            if resp.status_code != 200:
-                continue
-            for r in resp.json().get("results", []):
-                title = r.get("title", "")
-                content = r.get("content", "")
-                m = re.match(r"^([A-Z][a-z]+)\\s+([A-Z][a-z]+)\\s*[-–|]\\s*([^-–|]+?)(?:\\s+at\\s+|\\s*[-–|]\\s*)([^-–|]+)", title)
-                if not m:
-                    continue
-                fn, ln, role, comp = m.group(1).strip(), m.group(2).strip(), m.group(3).strip(), m.group(4).strip()
-                gate = evaluate_5_gate_hni_classification(role, comp, headcount=10, address=location, wealth_signal=query)
-                if not gate["passed"]:
-                    continue
-                p_info = extract_phone_with_proximity(f"{{title}} {{content}}", fn, ln, url=r.get("url", ""), default_region=default_reg, max_distance=120, require_mobile=True)
-                if not p_info or not p_info.get("valid"):
-                    continue
-                all_leads.append({{
-                    "First Name": fn,
-                    "Last Name": ln,
-                    "Role": role[:80],
-                    "Company": comp[:80],
-                    "Domain": "N/A",
-                    "Phone Number": p_info["formatted_intl"],
-                    "Email": "N/A",
-                    "City/Country": location,
-                    "Full Address": location,
-                    "Source": f"Custom OSINT Miner ({{query[:40]}})",
-                    "Wealth Signal": f"{{gate['tier']}} ({{query[:35]}})",
-                    "Pitch Angle": "Pitch: 24/7 Principal & Family Lifestyle Desk",
-                }})
-        except Exception as e:
-            print(f"[Tavily] {{e}}")
-
-q_low = (location + " " + query).lower()
-if any(k in q_low for k in ("nri", "indian", "diaspora", "iit", "iim", "tie", "indiaspora", "asian rich", "singapore", "hong kong")):
-    from scripts.gcc_elite_alumni_and_nri_miner import run_gcc_alumni_and_nri_miner
-    run_gcc_alumni_and_nri_miner(target_location=location, target_query=query)
-
-if all_leads:
-    added = append_leads_batch(all_leads, allow_network=False)
-    print(f"[+] Custom Miner finished! Added {{added}} new leads. Total verified leads: {{len(get_all_leads())}}")
-else:
-    print(f"[+] Custom Miner scan finished. Total verified leads in HNI.xlsx: {{len(get_all_leads())}}")
+print(f"[*] Launching High-Yield Live Miner for Location='{{location}}', Query='{{query}}'...")
+added = run_live_firecrawl_and_apify_miner(location=location, query=query)
+print(f"[+] Custom Miner finished! Added {{added}} new leads. Total verified leads: {{len(get_all_leads())}}")
 '''
     script_path = SCRIPTS_DIR / script_name
     with open(script_path, "w", encoding="utf-8") as f:
