@@ -171,18 +171,19 @@ GATEKEEPER_BRIDGE_TITLES = (
 
 
 def evaluate_5_gate_hni_classification(
-    title: str,
-    company: str,
+    title: str = "",
+    company: str = "",
     headcount: int = 10,
     industry: str = "",
     address: str = "",
     wealth_signal: str = "",
+    role: str = "",
 ) -> Dict[str, Any]:
     """
     Enforces the 5-Gate Classification Filter & Rule 1 ("Headcount-to-Entity" Paradox Filter)
     before saving any lead as Tier-S or Tier-A UHNI.
     """
-    t_low = (title or "").lower()
+    t_low = (title or role or "").lower()
     c_low = (company or "").lower()
     i_low = (industry or "").lower()
     a_low = (address or "").lower()
@@ -192,7 +193,7 @@ def evaluate_5_gate_hni_classification(
     # GATE 1: Negative Exclusion Filter
     for neg in GATE1_NEGATIVE_EXCLUSIONS:
         if neg in combined:
-            return {"passed": False, "tier": "Rejected", "reason": f"Gate 1 Exclusion: {neg}"}
+            return {"passed": False, "tier": "Rejected", "score": 0, "reason": f"Gate 1 Exclusion: {neg}"}
 
     is_gatekeeper = any(gk in t_low for gk in GATEKEEPER_BRIDGE_TITLES)
     has_holding_vehicle = any(hv in f"{c_low} {i_low} {t_low}" for hv in MULTILINGUAL_HOLDING_VEHICLE_KEYWORDS)
@@ -201,14 +202,14 @@ def evaluate_5_gate_hni_classification(
     # PATH A: Small Entity (1–15 Employees) — The "Headcount-to-Entity" Paradox Filter
     if headcount <= 15:
         if any(svc in combined for svc in SMALL_ENTITY_SERVICE_EXCLUSIONS):
-            return {"passed": False, "tier": "Rejected", "reason": "Path A Small Service Agency Exclusion"}
+            return {"passed": False, "tier": "Rejected", "score": 0, "reason": "Path A Small Service Agency Exclusion"}
         if not (has_holding_vehicle or has_equity_title or is_gatekeeper):
-            return {"passed": False, "tier": "Rejected", "reason": "Path A Missing Holding Vehicle or Equity Title"}
+            return {"passed": False, "tier": "Rejected", "score": 0, "reason": "Path A Missing Holding Vehicle or Equity Title"}
         path_used = "Path A: Small Holding / SFO Vehicle (1-15 Staff)"
     else:
         # PATH B: Operating Firm (20–5,000+ Employees)
         if not (has_equity_title or is_gatekeeper):
-            return {"passed": False, "tier": "Rejected", "reason": "Path B Salaried Non-Equity Functional Role"}
+            return {"passed": False, "tier": "Rejected", "score": 0, "reason": "Path B Salaried Non-Equity Functional Role"}
         path_used = "Path B: Operating Firm Equity Principal / Gatekeeper"
 
     # GATE 3: Wealth Verification Signal (Super-Prime Postcode, Statutory >25% PSC, Aviation/Yacht/Patronage)
@@ -225,12 +226,14 @@ def evaluate_5_gate_hni_classification(
         or any(k in combined for k in ("psc", "zefix", "pappers", "soparfi", "spf", "difc", "adgm", "ypo", "forbes"))
     )
     if not has_wealth_proof:
-        return {"passed": False, "tier": "Rejected", "reason": "Gate 3 Missing Wealth Verification Signal"}
+        return {"passed": False, "tier": "Rejected", "score": 0, "reason": "Gate 3 Missing Wealth Verification Signal"}
 
     tier = "Tier-S UHNI" if (has_holding_vehicle or matched_hub) else "Tier-A HNI"
+    score = 98 if tier == "Tier-S UHNI" else 91
     return {
         "passed": True,
         "tier": tier,
+        "score": score,
         "path": path_used,
         "prime_hub": matched_hub or "EMEA Verified Registry",
         "is_gatekeeper": is_gatekeeper,

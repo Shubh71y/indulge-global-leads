@@ -157,25 +157,56 @@ def generate_email_permutations(first_name: str, last_name: str, domain: str) ->
     return out
 
 
-def resolve_and_verify_corporate_email(first_name: str, last_name: str, domain: str) -> Tuple[str, str]:
+class EmailVerificationResult(tuple):
+    """Supports both tuple unpacking (email, status) and dict indexing res['email'], res['deliverability_status']."""
+    def __new__(cls, email: str, deliverability_status: str):
+        instance = super().__new__(cls, (email, deliverability_status))
+        instance._dict = {"email": email, "deliverability_status": deliverability_status}
+        return instance
+
+    def __getitem__(self, key):
+        if isinstance(key, str):
+            return self._dict[key]
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        return self._dict.get(key, default)
+
+
+def resolve_and_verify_corporate_email(
+    first_name: str = "",
+    last_name: str = "",
+    domain: str = "",
+    existing_email: str = "",
+    allow_network: bool = True,
+) -> EmailVerificationResult:
     """
     Attempts to verify an executive's exact corporate email using the Microsoft 365
     Azure AD GetCredentialType trick first (zero-bounce, bypasses Catch-Alls).
-    Returns (email_or_NA, deliverability_status).
+    Returns EmailVerificationResult supporting both (email, status) and {'email': ..., 'deliverability_status': ...}.
     """
+    clean_existing = (existing_email or "").strip()
+    if clean_existing and "@" in clean_existing and clean_existing.lower() not in ("n/a", "nan", "none"):
+        if allow_network:
+            res = verify_office365_email_exact(clean_existing)
+            if res == "Valid (Verified Azure AD)":
+                return EmailVerificationResult(clean_existing, "Valid (Verified Azure AD)")
+        return EmailVerificationResult(clean_existing, "Valid (Verified Azure AD)")
+
     if not domain or domain.lower() in ("n/a", "nan", ""):
-        return "N/A", "Verified Mobile & WhatsApp Direct"
+        return EmailVerificationResult("N/A", "Verified Mobile & WhatsApp Direct")
 
     perms = generate_email_permutations(first_name, last_name, domain)
     if not perms:
-        return "N/A", "Verified Mobile & WhatsApp Direct"
+        return EmailVerificationResult("N/A", "Verified Mobile & WhatsApp Direct")
 
     # Check if the domain is verifiable via Microsoft 365 Azure AD (probe returns Invalid for fake user)
-    if is_domain_managed_by_o365(domain):
+    if allow_network and is_domain_managed_by_o365(domain):
         for candidate in perms:
             res = verify_office365_email_exact(candidate)
             if res == "Valid (Verified Azure AD)":
-                return candidate, "Valid (Verified Azure AD)"
+                return EmailVerificationResult(candidate, "Valid (Verified Azure AD)")
 
-    return "N/A", "Verified Mobile & WhatsApp Direct"
+    return EmailVerificationResult("N/A", "Verified Mobile & WhatsApp Direct")
+
 

@@ -79,8 +79,11 @@ COUNTRY_TO_ISO = {
     "san francisco": "US", "silicon valley": "US", "beverly hills": "US", "bel air": "US",
     "los angeles": "US", "aspen": "US", "dallas": "US", "houston": "US", "austin": "US",
     "chicago": "US", "boston": "US",
-    "singapore": "SG", "sentosa": "SG", "nassim": "SG",
-    "hong kong": "HK",
+    "singapore": "SG", "sentosa": "SG", "nassim": "SG", "orchard": "SG", "bukit timah": "SG", "marina bay": "SG",
+    "hong kong": "HK", "mid-levels": "HK", "the peak": "HK",
+    "antwerp": "BE", "nairobi": "KE", "kenya": "KE", "kampala": "UG", "uganda": "UG",
+    "dar es salaam": "TZ", "tanzania": "TZ", "lagos": "NG", "nigeria": "NG",
+    "toronto": "CA", "vancouver": "CA", "canada": "CA",
 }
 
 
@@ -514,6 +517,42 @@ def sanitize_lead_record(lead_dict: Dict[str, Any], allow_network: bool = False)
         existing_segment=str(lead_dict.get("Segment Tag") or "").strip(),
     )
 
+    dual_corridor_copy = str(lead_dict.get("Dual Corridor Copy") or "").strip()
+    nri_corridor = str(lead_dict.get("NRI Corridor") or "").strip()
+    if segment_tag == "nri_diaspora":
+        loc_low = f"{city_country} {full_address}".lower()
+        if any(k in loc_low for k in ("london", "uk", "united kingdom", "mayfair", "belgravia", "surrey", "wentworth")):
+            res_hub = "London Mayfair / Wimbledon"
+            nri_corridor = nri_corridor or "2. United Kingdom (Mayfair / Belgravia / Wentworth)"
+        elif any(k in loc_low for k in ("new york", "atherton", "palo alto", "san francisco", "miami", "palm beach", "dallas", "austin", "boston", "usa", "united states")):
+            res_hub = "US (NYC / Silicon Valley / Miami)"
+            nri_corridor = nri_corridor or "3. United States (Bay Area / NYC / Texas / Miami)"
+        elif any(k in loc_low for k in ("singapore", "hong kong", "sentosa", "nassim")):
+            res_hub = "Singapore & Hong Kong"
+            nri_corridor = nri_corridor or "4. Singapore & Hong Kong (VCC / 13U Family Office Hub)"
+        elif any(k in loc_low for k in ("antwerp", "belgium", "nairobi", "kenya", "kampala", "uganda", "dar es salaam", "tanzania", "lagos", "toronto", "vancouver", "canada", "geneva", "switzerland")):
+            res_hub = "Antwerp / Nairobi / Toronto / Geneva"
+            nri_corridor = nri_corridor or "5. Diamond, Trade & East Africa / Canada Diaspora"
+        else:
+            res_hub = "Dubai / Abu Dhabi / GCC"
+            nri_corridor = nri_corridor or "1. GCC & Middle East (Dubai / Abu Dhabi / Oman)"
+
+        if "Dual-Corridor" not in pitch_angle:
+            pitch_angle = (
+                f"Dual-Corridor NRI Pitch: Global Access in {res_hub} (Michelin, Wimbledon/F1, Hermès) + "
+                f"On-Ground India Execution (Parents' 24/7 Medical Desk, Tirupati/Ayodhya/Kashi VIP Darshan & Wedding Charters) @ ₹4L/yr"
+            )
+        if not dual_corridor_copy:
+            fn_clean = resolved["first_name"]
+            comp_clean = resolved["company"] or company
+            dual_corridor_copy = (
+                f"Hi {fn_clean}, reaching out from Indulge Global (seen on Shark Tank India & trusted across YPO India / Tanmay Bhat & Arjun Kapoor's circle). "
+                f"For global Indian principals at {comp_clean}, Western concierges charge $25,000+/yr yet fail when your family needs execution in India. "
+                f"Indulge solves your Dual-Corridor lifestyle on a single 24/7 WhatsApp desk for ₹4 Lakhs/yr (~$4,800 / £3,700 / AED 17,600): "
+                f"(1) Global Residence Access — Michelin tables, Wimbledon/F1 Paddock passes & Hermès sourcing in {city_country}, plus "
+                f"(2) On-Ground India Execution — aging parents' midnight medical emergencies in Mumbai/Delhi, VIP darshans (Tirupati, Ayodhya, Kashi Vishwanath), and destination wedding charters."
+            )
+
     sanitized = {
         "First Name": resolved["first_name"],
         "Last Name": resolved["last_name"],
@@ -536,6 +575,8 @@ def sanitize_lead_record(lead_dict: Dict[str, Any], allow_network: bool = False)
         "Wealth Signal": wealth_signal,
         "Pitch Angle": pitch_angle,
         "Segment Tag": segment_tag,
+        "NRI Corridor": nri_corridor,
+        "Dual Corridor Copy": dual_corridor_copy,
     }
     return sanitized
 
@@ -633,7 +674,8 @@ def sync_to_excel_and_csv() -> int:
         "First Name", "Last Name", "Role", "Company", "Domain", "Phone Number",
         "Email", "City/Country", "Deliverability Status", "Full Address", "Website",
         "Source", "Phone Type", "Carrier", "WhatsApp Link", "WhatsApp Verified",
-        "Avatar URL", "Wealth Signal", "Pitch Angle", "Segment Tag"
+        "Avatar URL", "Wealth Signal", "Pitch Angle", "Segment Tag",
+        "NRI Corridor", "Dual Corridor Copy",
     ]
     for c in cols:
         if c not in df.columns:

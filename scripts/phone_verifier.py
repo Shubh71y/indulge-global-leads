@@ -71,11 +71,16 @@ ME_ALLOWED_COUNTRY_CODES = {
     356: ("MT", "Malta"),
     351: ("PT", "Portugal"),
     353: ("IE", "Ireland"),
-    # United States Priority Wealth Hubs (NYC, Palm Beach/Miami, Silicon Valley/SF, Beverly Hills, Greenwich, Aspen, Dallas/Houston)
-    1:   ("US", "United States"),
-    # Global NRI Wealth Hubs (Singapore MAS 13O/13U Single Family Offices & Hong Kong)
+    # United States & Canada Priority Wealth Hubs
+    1:   ("US", "United States / Canada"),
+    # Global NRI Wealth Hubs (Singapore MAS 13O/13U / VCC Single Family Offices & Hong Kong)
     65:  ("SG", "Singapore"),
     852: ("HK", "Hong Kong"),
+    # Corridor 5: East & West Africa Indian Industrial Conglomerate Diaspora
+    254: ("KE", "Kenya"),
+    256: ("UG", "Uganda"),
+    255: ("TZ", "Tanzania"),
+    234: ("NG", "Nigeria"),
 }
 
 LOCATION_TO_REGION = {
@@ -98,7 +103,7 @@ LOCATION_TO_REGION = {
     "istanbul": "TR", "ankara": "TR", "bodrum": "TR", "turkey": "TR", "türkiye": "TR",
     "sanaa": "YE", "aden": "YE", "yemen": "YE",
     # Europe Priority Hubs
-    "london": "GB", "mayfair": "GB", "belgravia": "GB", "knightsbridge": "GB", "chelsea": "GB", "united kingdom": "GB", "uk": "GB",
+    "london": "GB", "mayfair": "GB", "belgravia": "GB", "knightsbridge": "GB", "chelsea": "GB", "st john's wood": "GB", "hampstead": "GB", "surrey": "GB", "wentworth": "GB", "leicester": "GB", "birmingham": "GB", "united kingdom": "GB", "uk": "GB",
     "geneva": "CH", "zurich": "CH", "zürich": "CH", "zug": "CH", "lugano": "CH", "st. moritz": "CH", "gstaad": "CH", "switzerland": "CH",
     "paris": "FR", "neuilly": "FR", "cannes": "FR", "saint-tropez": "FR", "antibes": "FR", "france": "FR",
     "monaco": "MC", "monte carlo": "MC", "monte-carlo": "MC",
@@ -111,16 +116,22 @@ LOCATION_TO_REGION = {
     "luxembourg": "LU",
     "stockholm": "SE", "sweden": "SE",
     "oslo": "NO", "norway": "NO",
-    # United States Priority Hubs
-    "new york": "US", "nyc": "US", "manhattan": "US", "hamptons": "US", "greenwich": "US",
-    "palm beach": "US", "miami": "US", "indian creek": "US", "fisher island": "US",
-    "atherton": "US", "palo alto": "US", "san francisco": "US", "silicon valley": "US", "menlo park": "US",
+    # United States & Canada Priority Hubs
+    "new york": "US", "nyc": "US", "manhattan": "US", "hamptons": "US", "greenwich": "US", "scarsdale": "US", "alpine": "US", "new jersey": "US",
+    "palm beach": "US", "miami": "US", "indian creek": "US", "fisher island": "US", "florida": "US",
+    "atherton": "US", "palo alto": "US", "los altos hills": "US", "saratoga": "US", "san jose": "US", "san francisco": "US", "silicon valley": "US", "menlo park": "US", "bay area": "US",
     "beverly hills": "US", "bel air": "US", "malibu": "US", "los angeles": "US", "newport beach": "US",
-    "aspen": "US", "jackson hole": "US", "dallas": "US", "highland park": "US", "houston": "US", "austin": "US",
+    "aspen": "US", "jackson hole": "US", "dallas": "US", "plano": "US", "highland park": "US", "houston": "US", "austin": "US", "texas": "US",
+    "seattle": "US", "bellevue": "US", "medina": "US",
     "chicago": "US", "boston": "US", "united states": "US", "usa": "US",
-    # Global NRI Hubs
-    "singapore": "SG", "sentosa": "SG", "nassim": "SG",
-    "hong kong": "HK",
+    "toronto": "CA", "vancouver": "CA", "canada": "CA",
+    # Global NRI Hubs (APAC & Corridor 5 East/West Africa)
+    "singapore": "SG", "sentosa": "SG", "nassim": "SG", "orchard": "SG", "bukit timah": "SG", "marina bay": "SG",
+    "hong kong": "HK", "mid-levels": "HK", "the peak": "HK", "kowloon": "HK",
+    "nairobi": "KE", "kenya": "KE",
+    "kampala": "UG", "uganda": "UG",
+    "dar es salaam": "TZ", "tanzania": "TZ",
+    "lagos": "NG", "nigeria": "NG",
 }
 
 # Known Poisoned / Hardcoded Dummy Numbers
@@ -131,7 +142,7 @@ POISONED_PHONES = {
     "+96264651234",
 }
 
-# ITU-T, European & US NANP Telecom Strict Mobile Prefix Regexes per Country Code (E.164 without spaces)
+# ITU-T, European, US/Canada NANP, APAC & East Africa Strict Mobile Prefix Regexes per Country Code (E.164 without spaces)
 # Explicitly excludes +4470 personal numbering, +4122/+4144 Swiss fixed, +331 Paris fixed, +3779 Monaco fixed, +4989/+4969 German fixed, and US 800/888/877/866/855/844/833/900 toll-free.
 STRICT_MOBILE_E164_RE = re.compile(
     r'^(?:'
@@ -163,7 +174,7 @@ STRICT_MOBILE_E164_RE = re.compile(
     r'\+393\d{8,9}|'                             # Italy Mobile (+39 3...)
     r'\+34[67]\d{8}|'                            # Spain Mobile (+34 6..., +34 7...)
     r'\+316\d{8}|'                               # Netherlands Mobile (+31 6...)
-    r'\+324[56789]\d{7}|'                        # Belgium Mobile (+32 4...)
+    r'\+324[56789]\d{7}|'                        # Belgium / Antwerp Mobile (+32 4...)
     r'\+3526[269]1\d{6}|'                        # Luxembourg Mobile (+352 621, 661, 691)
     r'\+467[02369]\d{7}|'                        # Sweden Mobile (+46 7...)
     r'\+47[49]\d{7}|'                            # Norway Mobile (+47 4..., +47 9...)
@@ -171,11 +182,16 @@ STRICT_MOBILE_E164_RE = re.compile(
     r'\+356[79]\d{7}|'                           # Malta Mobile (+356 79, 99)
     r'\+3519[1236]\d{7}|'                        # Portugal Mobile (+351 9...)
     r'\+3538[35679]\d{7}|'                       # Ireland Mobile (+353 8...)
-    # United States (+1 NANP valid 10-digit numbers excluding 800/888/877/866/855/844/833/900 toll-free and 555 exchange)
+    # United States & Canada (+1 NANP valid 10-digit numbers excluding 800/888/877/866/855/844/833/900 toll-free and 555 exchange)
     r'\+1(?!(?:800|888|877|866|855|844|833|900))[2-9]\d{2}(?!555)[2-9]\d{6}|'
     # Singapore (+65 8/9 mobile) & Hong Kong (+852 5/6/9 mobile)
     r'\+65[89]\d{7}|'
-    r'\+852[569]\d{7}'
+    r'\+852[569]\d{7}|'
+    # Corridor 5: East & West Africa Diaspora Mobile (+254 7/1 Kenya, +256 7 Uganda, +255 7/6 Tanzania, +234 7/8/9 Nigeria)
+    r'\+254[17]\d{8}|'
+    r'\+2567\d{8}|'
+    r'\+255[67]\d{8}|'
+    r'\+234[789][01]\d{8}'
     r')$'
 )
 
@@ -273,13 +289,27 @@ GCC_CARRIER_PREFIXES = [
     ("+1561",  "AT&T / Verizon Palm Beach FL"),
     ("+1305",  "AT&T / Verizon Miami Beach FL"),
     ("+1650",  "Verizon / AT&T Silicon Valley (Atherton)"),
+    ("+1408",  "Verizon / AT&T Silicon Valley (Saratoga/San Jose)"),
     ("+1415",  "Verizon / AT&T San Francisco"),
     ("+1310",  "Verizon / AT&T Beverly Hills / Bel Air"),
     ("+1970",  "Verizon / AT&T Aspen CO"),
     ("+1214",  "AT&T / Verizon Highland Park Dallas"),
+    ("+1512",  "AT&T / Verizon Austin TX"),
     ("+1713",  "AT&T / Verizon River Oaks Houston"),
+    ("+1425",  "Verizon / T-Mobile Bellevue / Medina WA"),
     ("+1312",  "Verizon / AT&T Chicago Gold Coast"),
     ("+1617",  "Verizon / AT&T Boston Beacon Hill"),
+    ("+1416",  "Rogers / Bell Toronto VIP"),
+    ("+1604",  "Telus / Rogers Vancouver VIP"),
+    # APAC & Corridor 5 Diaspora Hubs
+    ("+659",   "Singtel / StarHub Singapore VIP"),
+    ("+658",   "Singtel / M1 Singapore Mobile"),
+    ("+8529",  "CSL / SmarTone Hong Kong VIP"),
+    ("+8526",  "3 HK / China Mobile HK"),
+    ("+2547",  "Safaricom / Airtel Kenya VIP"),
+    ("+2567",  "MTN / Airtel Uganda VIP"),
+    ("+2557",  "Vodacom / Airtel Tanzania VIP"),
+    ("+2348",  "MTN / Airtel Nigeria VIP"),
 ]
 
 

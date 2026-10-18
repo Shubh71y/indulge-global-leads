@@ -1576,44 +1576,39 @@ tr:hover td {
 <div class="modal-overlay" id="minerModal">
   <div class="modal-card">
     <div class="modal-header">
-      <div class="modal-title">⚡ Global (US + EMEA) Multi-Pillar UHNI Engine</div>
+      <div class="modal-title">⚡ Global (US + EMEA + 5-Corridor NRI) UHNI Engine</div>
       <div class="btn-circle" style="width: 32px; height: 32px;" onclick="toggleMinerModal()"><i class="fa-solid fa-xmark"></i></div>
     </div>
 
     <div class="modal-field">
       <label>High-Net-Worth Registry Source</label>
       <select class="modal-select" id="minerSourceTypeInput">
-        <option value="us_uhni">United States SEC Form 13F Family Offices, Silicon Valley & Indiaspora/TiE</option>
-        <option value="emea_statutory">Europe Statutory Beneficial Ownership (UK PSC / Zefix / Pappers / Handelsregister / Monaco RCI)</option>
-        <option value="uhni_6_sources">Middle East 7-Pillar UHNI Registries (DIFC/ADGM + NRI + Jets/Yachts/Polo + DFSA/CMA + Art/Trustees)</option>
-        <option value="gcc_alumni_nri">GCC Elite IIT/IIM/SRCC/ISB Alumni, TiE Charter & IBPC Governors</option>
-        <option value="mobile">VIP Direct Mobile OSINT Engine (120-Char Proximity)</option>
-        <option value="custom">Custom Targeted Wealth Query</option>
+        <option value="gcc_alumni_nri">🇮🇳 5-Corridor, 10-Source Global NRI HNI Engine (Indiaspora / TiE / AAHOA / AAPI / AIF / SEBI DRHP / UK PSC / AWDC)</option>
+        <option value="us_uhni">🇺🇸 United States SEC Form 13F Family Offices, Silicon Valley & Indiaspora/TiE</option>
+        <option value="emea_statutory">🇪🇺 Europe Statutory Beneficial Ownership (UK PSC / Zefix / Pappers / Handelsregister / Monaco RCI)</option>
+        <option value="uhni_6_sources">🏛️ Middle East 7-Pillar UHNI Registries (DIFC/ADGM + NRI + Jets/Yachts/Polo + DFSA/CMA + Art/Trustees)</option>
+        <option value="mobile">📱 VIP Direct Mobile OSINT Engine (120-Char Proximity)</option>
+        <option value="custom">🎯 Custom Targeted Wealth Query</option>
       </select>
     </div>
 
     <div class="modal-field">
-      <label>Target Super-Prime Wealth Location</label>
+      <label>Target Super-Prime Wealth Corridor / Micro-Hub</label>
       <select class="modal-select" id="minerLocationInput">
-        <option value="New York, USA">New York City (Billionaires' Row / Upper East Side) & Greenwich CT</option>
-        <option value="Palm Beach, USA">Palm Beach (33480) & Miami (Indian Creek / Fisher Island)</option>
-        <option value="Atherton, USA">Silicon Valley (Atherton 94027 / Palo Alto / Sand Hill Road)</option>
-        <option value="Beverly Hills, USA">Beverly Hills (90210), Bel Air & Aspen (81611)</option>
-        <option value="London, United Kingdom">London (Mayfair W1J/W1K, Belgravia SW1X)</option>
-        <option value="Geneva, Switzerland">Geneva & Zug (Rue du Rhône, Cologny, Bahnhofstrasse)</option>
-        <option value="Monte Carlo, Monaco">Monaco (98000 Monte Carlo) & Paris (75008 / 75016)</option>
-        <option value="Munich, Germany">Munich & Grünwald (82031) / Bad Homburg</option>
-        <option value="Milan, Italy">Milan (20121 Brera / Montenapoleone Non-Dom Hub)</option>
-        <option value="Dubai, UAE">Dubai (DIFC Gate Village, Emirates Hills, Palm Jumeirah)</option>
-        <option value="Abu Dhabi, UAE">Abu Dhabi (ADGM Al Maryah Island, Saadiyat)</option>
-        <option value="Riyadh, Saudi Arabia">Riyadh (KAFD, Olaya, Hittin)</option>
-        <option value="Doha, Qatar">Doha (West Bay, Lusail)</option>
+        <option value="Dubai, UAE">Corridor 1 (GCC/ME): Dubai (Emirates Hills, Palm Jumeirah, DIFC), Abu Dhabi, Riyadh, Doha, Muscat</option>
+        <option value="London, United Kingdom">Corridor 2 (UK): London (Mayfair W1J/W1K, Belgravia SW1X, St John's Wood) & Wentworth Surrey</option>
+        <option value="Atherton, USA">Corridor 3A (US Tech/VC): Bay Area (Atherton 94027, Palo Alto, Los Altos Hills, Saratoga)</option>
+        <option value="New York, USA">Corridor 3B (US Wall St/Hotel/Med): NYC, Greenwich CT, Alpine NJ, Dallas/Austin TX & Miami FL</option>
+        <option value="Singapore">Corridor 4 (APAC SFOs): Singapore (Sentosa Cove, Nassim Road VCC/13U) & Hong Kong (The Peak)</option>
+        <option value="Antwerp, Belgium & Nairobi, Kenya">Corridor 5 (Diamond & Trade Diaspora): Antwerp, Nairobi, Kampala, Dar es Salaam & Toronto</option>
+        <option value="Geneva, Switzerland">Europe Vault: Geneva & Zug (Rue du Rhône, Cologny, Bahnhofstrasse)</option>
+        <option value="Monte Carlo, Monaco">Riviera: Monaco (98000 Monte Carlo) & Paris (75008 / 75016)</option>
       </select>
     </div>
 
     <div class="modal-field">
       <label>Wealth Sector / Target Query</label>
-      <input type="text" class="modal-input" id="minerQueryInput" value="Single Family Office & SEC Form 13F Principal" placeholder="e.g. SEC 13F / UK PSC >75% / Swiss Zefix / DIFC SFO">
+      <input type="text" class="modal-input" id="minerQueryInput" value="Indiaspora / TiE Charter / AAHOA / AAPI / UK PSC Indian / Family Office" placeholder="e.g. Indiaspora / TiE Charter / AAHOA / SEBI DRHP / SEC 13F">
     </div>
 
     <div class="modal-field">
@@ -1768,7 +1763,10 @@ function renderTable() {
     const carrier = l['Carrier'] || '';
     const isMobile = phoneType.includes('Mobile');
     const cleanDigits = phone.replace(/[^\d]/g, '');
-    const waLink = isMobile ? (l['WhatsApp Link'] || (cleanDigits ? `https://wa.me/${cleanDigits}` : '')) : '';
+    const baseWaLink = isMobile ? (l['WhatsApp Link'] || (cleanDigits ? `https://wa.me/${cleanDigits}` : '')) : '';
+    const dualCopy = l['Dual Corridor Copy'] || '';
+    const nriCorridor = l['NRI Corridor'] || '';
+    const waLink = (baseWaLink && dualCopy) ? `${baseWaLink}?text=${encodeURIComponent(dualCopy)}` : baseWaLink;
     const email = (l['Email'] && l['Email'] !== 'nan') ? l['Email'] : 'N/A';
     const company = l['Company'] || 'Private Enterprise';
     const domain = (l['Domain'] && l['Domain'] !== 'nan' && l['Domain'] !== 'N/A') ? l['Domain'] : 'Verified GCC Entity';
@@ -1811,6 +1809,10 @@ function renderTable() {
            ${isAzureAd ? `<span style="font-size: 9.5px; font-weight: 700; color: #0284C7;"><i class="fa-brands fa-microsoft"></i> Verified Azure AD (No Catch-All)</span>` : `<span style="font-size: 9.5px; color: #15803D;">Verified Corporate Domain</span>`}
          </div>`;
 
+    const corridorBadgeHtml = nriCorridor
+      ? `<span style="display: inline-block; width: fit-content; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #FFF7ED; color: #C2410C; border: 1px solid #FDBA74;">🌏 ${nriCorridor}</span>`
+      : '';
+
     return `
       <tr>
         <td style="color: var(--text-muted); font-size: 11px;">${i + 1}</td>
@@ -1828,11 +1830,14 @@ function renderTable() {
           <div style="font-size: 11px; color: var(--text-muted);">${domain}</div>
         </td>
         <td>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <span style="display: inline-block; width: fit-content; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; ${signalStyle}">
-              ${wealthSignal}
-            </span>
-            <span style="font-size: 11px; font-weight: 600; color: var(--text-body);">
+          <div style="display: flex; flex-direction: column; gap: 4px; max-width: 420px; white-space: normal;">
+            <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+              <span style="display: inline-block; width: fit-content; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; ${signalStyle}">
+                ${wealthSignal}
+              </span>
+              ${corridorBadgeHtml}
+            </div>
+            <span style="font-size: 11px; font-weight: 600; color: var(--text-body); line-height: 1.35;">
               ${pitchAngle}
             </span>
           </div>
@@ -1844,7 +1849,7 @@ function renderTable() {
                 ${phone}
               </span>
               ${isMobile && waLink ? `
-                <a href="${waLink}" target="_blank" class="whatsapp-icon-link" title="Verified VIP Personal WhatsApp (${carrier || 'GCC Mobile'})">
+                <a href="${waLink}" target="_blank" class="whatsapp-icon-link" title="Send Dual-Corridor WhatsApp Pitch (${carrier || 'VIP Mobile'})">
                   <i class="fa-brands fa-whatsapp"></i>
                 </a>
               ` : `
@@ -1868,9 +1873,16 @@ function renderTable() {
           </span>
         </td>
         <td>
-          <button class="copy-btn" onclick="copyNum('${phone}')" title="Copy Number">
-            <i class="fa-regular fa-copy"></i>
-          </button>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <button class="copy-btn" onclick="copyNum('${phone}')" title="Copy Phone Number">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+            ${dualCopy ? `
+              <button class="copy-btn" onclick="copyDualPitch(${i})" title="Copy Dual-Corridor NRI WhatsApp/Email Pitch" style="color: var(--coral); font-weight: 700; font-size: 11px;">
+                <i class="fa-solid fa-comment-dots"></i>
+              </button>
+            ` : ''}
+          </div>
         </td>
       </tr>
     `;
@@ -1880,6 +1892,14 @@ function renderTable() {
 function copyNum(p) {
   navigator.clipboard.writeText(p);
   showToast(`Copied phone: ${p}`);
+}
+
+function copyDualPitch(idx) {
+  const lead = filteredData[idx];
+  if (lead && lead['Dual Corridor Copy']) {
+    navigator.clipboard.writeText(lead['Dual Corridor Copy']);
+    showToast(`Copied Dual-Corridor NRI Pitch for ${lead['First Name']} ${lead['Last Name']}!`);
+  }
 }
 
 function showToast(msg) {
