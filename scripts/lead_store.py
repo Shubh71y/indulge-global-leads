@@ -611,6 +611,14 @@ def append_lead(lead_dict: Dict[str, Any], allow_network: bool = False) -> bool:
 
     with open(JSONL_PATH, "a", encoding="utf-8") as f:
         f.write(json.dumps(sanitized, ensure_ascii=False) + "\n")
+
+    # Real-time reflection to Google Sheet (non-blocking daemon thread)
+    try:
+        from scripts.google_sheets_sync import push_single_lead_async
+        push_single_lead_async(sanitized)
+    except Exception:
+        pass
+
     return True
 
 

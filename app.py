@@ -373,6 +373,60 @@ def api_export_csv():
     )
 
 
+# ---------------------------------------------------------------------------
+# Google Sheets & Google Apps Script Sync Endpoints
+# ---------------------------------------------------------------------------
+
+@app.route("/api/google-sheet/config", methods=["GET", "POST"])
+def api_google_sheet_config():
+    """Get or save Google Sheet Webhook URL."""
+    from scripts import google_sheets_sync
+    if request.method == "POST":
+        data = request.get_json(force=True) if request.data else {}
+        url = (data.get("webhook_url") or "").strip()
+        google_sheets_sync.save_configured_webhook_url(url)
+        test_res = google_sheets_sync.test_google_sheet_webhook(url) if url else {"success": False, "error": "URL cleared"}
+        return jsonify({
+            "configured": bool(url),
+            "webhook_url": url,
+            "test_result": test_res,
+            "message": "Google Sheet Webhook URL updated" if url else "Webhook URL cleared"
+        })
+
+    url = google_sheets_sync.get_configured_webhook_url()
+    return jsonify({
+        "configured": bool(url),
+        "webhook_url": url or ""
+    })
+
+
+@app.route("/api/google-sheet/sync", methods=["POST"])
+def api_google_sheet_sync():
+    """Trigger full sync of all leads to Google Sheets."""
+    from scripts import google_sheets_sync
+    leads = _read_hni_xlsx()
+    if not leads:
+        leads = _read_hni_csv()
+    
+    url = google_sheets_sync.get_configured_webhook_url()
+    if not url:
+        return jsonify({"success": False, "error": "No Google Sheet Webhook URL configured. Please configure it first."}), 400
+
+    res = google_sheets_sync.sync_leads_to_google_sheet(leads=leads, webhook_url=url)
+    return jsonify(res)
+
+
+@app.route("/api/google-sheet/code", methods=["GET"])
+def api_google_sheet_code():
+    """Return the Google Apps Script Code.gs content."""
+    script_file = SCRIPTS_DIR / "google_apps_script_code.js"
+    if script_file.exists():
+        content = script_file.read_text(encoding="utf-8")
+        return jsonify({"code": content, "filename": "Code.gs"})
+    return jsonify({"error": "Script file not found"}), 404
+
+
+
 def _generate_custom_miner(location, query, target_count):
     """Generate a one-shot custom miner script using Tavily OSINT, 5-Gate Classifier, 120-Char Proximity Mobile, M365 Azure AD, and Apify."""
     script_name = f"custom_miner_{int(time.time())}.py"

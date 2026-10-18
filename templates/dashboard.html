@@ -1205,6 +1205,43 @@ tr:hover td {
   transform: translateY(0);
   opacity: 1;
 }
+
+/* Real-Time Sync & Google Sheet CRM Pills */
+@keyframes syncPulse {
+  0% { transform: scale(0.95); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.7; }
+}
+
+.sync-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  display: inline-block;
+  animation: syncPulse 2s infinite ease-in-out;
+}
+
+.realtime-sync-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #065F46;
+  background: #ECFDF5;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #A7F3D0;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.realtime-sync-badge:hover {
+  background: #D1FAE5;
+  transform: translateY(-1px);
+}
 </style>
 </head>
 <body>
@@ -1225,6 +1262,11 @@ tr:hover td {
     </div>
 
     <div class="header-right">
+      <div class="realtime-sync-badge" onclick="toggleGoogleSheetModal()" title="Click to open Google Sheets CRM & Real-Time Sync Settings">
+        <span class="sync-pulse-dot"></span>
+        <span id="headerSyncText">Live Sync (264 Leads)</span>
+      </div>
+      <div class="btn-circle" onclick="toggleGoogleSheetModal()" title="Google Sheet CRM & SDR Tapping"><i class="fa-solid fa-table"></i></div>
       <div class="btn-circle" onclick="toggleMinerModal()" title="Add / Trigger Miner"><i class="fa-solid fa-plus"></i></div>
       
       <div class="user-profile-pill" onclick="showToast('Indulge Global Lead Funnel')">
@@ -1253,6 +1295,11 @@ tr:hover td {
       <button class="btn-coral-pill" onclick="toggleMinerModal()">
         <span>Deploy 10,000 Lead Miner</span>
         <i class="fa-solid fa-arrow-right"></i>
+      </button>
+
+      <button class="btn-coral-pill" style="background: #059669;" onclick="toggleGoogleSheetModal()">
+        <i class="fa-solid fa-table-cells"></i>
+        <span>Google Sheet CRM</span>
       </button>
 
       <div class="btn-calendar-circle" onclick="loadLeads()" title="Refresh Dataset">
@@ -1536,6 +1583,9 @@ tr:hover td {
             <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">5-Gate Classification · US SEC 13F / UK PSC / Swiss Zefix / Pappers.fr / DIFC / ADGM · E.164 Mobile & M365 Azure AD Verified</div>
           </div>
           <div style="display: flex; gap: 10px;">
+            <button class="btn-coral-pill" style="padding: 8px 18px; font-size: 12px; background: #059669;" onclick="toggleGoogleSheetModal()">
+              <i class="fa-solid fa-table-cells"></i> Google Sheet CRM
+            </button>
             <button class="btn-coral-pill" style="padding: 8px 18px; font-size: 12px;" onclick="toggleMinerModal()">
               <i class="fa-solid fa-bolt"></i> Mine UHNI Registries
             </button>
@@ -1628,6 +1678,84 @@ tr:hover td {
   </div>
 </div>
 
+<!-- MODAL: GOOGLE SHEETS REAL-TIME SYNC & SDR CRM -->
+<div class="modal-overlay" id="googleSheetModal" style="display: none;">
+  <div class="modal-card" style="max-width: 760px;">
+    <div class="modal-header">
+      <div class="modal-title" style="display: flex; align-items: center; gap: 8px;">
+        <i class="fa-solid fa-table" style="color: #10B981;"></i>
+        <span>Google Sheets Real-Time Sync & SDR CRM</span>
+      </div>
+      <div class="btn-circle" style="width: 32px; height: 32px;" onclick="toggleGoogleSheetModal()"><i class="fa-solid fa-xmark"></i></div>
+    </div>
+
+    <!-- Connection Status Banner -->
+    <div id="gsStatusBanner" style="padding: 14px 18px; border-radius: 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; background: #ECFDF5; border: 1px solid #A7F3D0;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <i class="fa-solid fa-circle-check" id="gsStatusIcon" style="color: #059669; font-size: 20px;"></i>
+        <div>
+          <div style="font-weight: 700; font-size: 13.5px; color: #065F46;" id="gsStatusTitle">Google Sheets Webhook Sync Ready</div>
+          <div style="font-size: 12px; color: #047857;" id="gsStatusDesc">Leads reflect in real-time with SDR Call Dispositions, Notes & WhatsApp Links.</div>
+        </div>
+      </div>
+      <span class="badge-growth" id="gsSyncBadge" style="background: #10B981; color: white;">264 Leads</span>
+    </div>
+
+    <!-- Webhook URL Field -->
+    <div class="modal-field">
+      <label style="display: flex; justify-content: space-between; align-items: center;">
+        <span>Google Apps Script Web App URL</span>
+        <span style="font-size: 11.5px; color: var(--coral); cursor: pointer; font-weight: 600;" onclick="toggleGsGuide()">
+          <i class="fa-solid fa-circle-question"></i> 60-Sec Setup Guide
+        </span>
+      </label>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" class="modal-input" id="gsWebhookUrlInput" placeholder="https://script.google.com/macros/s/AKfycb.../exec" style="flex: 1;">
+        <button class="btn-coral-pill" style="padding: 8px 18px; font-size: 12px; background: var(--black);" onclick="saveGoogleSheetConfig()">
+          <i class="fa-solid fa-floppy-disk"></i> Save & Test
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div style="display: flex; gap: 12px; margin-top: 14px; margin-bottom: 20px;">
+      <button class="btn-coral-pill" style="flex: 1; justify-content: center; background: #059669;" onclick="triggerFullGoogleSheetSync()" id="btnSyncAllLeads">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Push All Leads to Google Sheet Now</span>
+      </button>
+      <button class="btn-coral-pill" style="background: var(--card-subtle); color: var(--text-title); justify-content: center;" onclick="copyGoogleAppsScriptCode()">
+        <i class="fa-regular fa-copy"></i>
+        <span>Copy Code.gs</span>
+      </button>
+    </div>
+
+    <!-- Collapsible 60-Sec Setup Guide -->
+    <div id="gsGuideSection" style="border: 1px solid var(--border); border-radius: 16px; padding: 18px; background: #F8FAFC; max-height: 260px; overflow-y: auto;">
+      <div style="font-weight: 800; font-size: 13px; color: var(--text-title); margin-bottom: 8px;">
+        ⚡ 60-Second Setup Instructions for Google Sheets:
+      </div>
+      <ol style="font-size: 12px; color: var(--text-body); line-height: 1.7; padding-left: 20px; margin-bottom: 14px;">
+        <li>Create a blank Google Sheet (e.g. <b>"Indulge Global — HNI Funnel & SDR Outreach"</b>).</li>
+        <li>Click top menu <b>Extensions &gt; Apps Script</b>.</li>
+        <li>Delete any existing code in <code>Code.gs</code>, click the <b>"Copy Code.gs"</b> button above, and paste it.</li>
+        <li>Click <b>Deploy (top right) &gt; New deployment</b>.</li>
+        <li>Select <b>Web app</b> &rarr; Execute as: <b>Me</b> &rarr; Who has access: <b>Anyone</b>.</li>
+        <li>Click <b>Deploy</b>, authorize permissions, and copy the <b>Web app URL</b>.</li>
+        <li>Paste the Web app URL in the field above and click <b>Save & Test</b>!</li>
+      </ol>
+      <div style="font-weight: 800; font-size: 12.5px; color: var(--text-title); margin-bottom: 6px;">
+        🎯 SDR Calling & Tapping Columns Formatted Automatically:
+      </div>
+      <ul style="font-size: 11.5px; color: var(--text-body); line-height: 1.6; padding-left: 20px;">
+        <li><b>Column A: Call Disposition Dropdown</b> with soft color tags (<code>🟢 Call Picked - Interested (VIP)</code>, <code>⭐ Meeting Booked</code>, <code>💬 WhatsApp Sent</code>, <code>📞 Call Scheduled</code>, <code>⏳ Ringing / No Answer</code>, <code>🔄 Busy / Callback</code>, <code>❌ Not Interested</code>).</li>
+        <li><b>Column B: Call Outcome & Notes</b> for SDR live notes and objections.</li>
+        <li><b>Column L: WhatsApp Click-to-Chat Link</b> with pre-filled Dual-Corridor NRI Pitch!</li>
+        <li><b>Non-Destructive Sync:</b> When you mine new leads, the system updates metadata but <b>NEVER overwrites your SDR call notes, status, or timestamps!</b></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast-notice" id="toastBox">
   <i class="fa-solid fa-circle-check" style="color: var(--coral);"></i>
@@ -1637,10 +1765,15 @@ tr:hover td {
 <script>
 let leadsData = [];
 let filteredData = [];
+let currentFilter = 'all';
+let currentSearch = '';
+let isGoogleSheetConnected = false;
 
 document.addEventListener('DOMContentLoaded', () => {
   loadLeads();
-  setInterval(loadLeads, 6000); // 6s fast sync
+  checkGoogleSheetStatus();
+  setInterval(loadLeads, 4000); // 4s fast real-time poll
+  setInterval(checkGoogleSheetStatus, 30000); // 30s config poll
 });
 
 async function loadLeads() {
@@ -1648,13 +1781,76 @@ async function loadLeads() {
     const res = await fetch('/api/leads');
     const data = await res.json();
     if (data && data.leads) {
+      const isCountChanged = data.leads.length !== leadsData.length;
       leadsData = data.leads;
-      filteredData = leadsData;
       updateHeaderCounts();
-      renderTable();
+      
+      // Update real-time sync pill
+      const syncEl = document.getElementById('headerSyncText');
+      if (syncEl) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        syncEl.textContent = `Live Sync (${leadsData.length} Leads) • ${timeStr}`;
+      }
+      
+      const gsBadge = document.getElementById('gsSyncBadge');
+      if (gsBadge) gsBadge.textContent = `${leadsData.length} Leads`;
+
+      // Apply current search and filter without resetting user view
+      applyActiveFiltersAndSearch(isCountChanged);
     }
   } catch(e) {
     console.error("Error fetching leads:", e);
+  }
+}
+
+function applyActiveFiltersAndSearch(shouldRerender = true) {
+  let list = leadsData;
+
+  // 1. Filter by segment / country / mobile
+  if (currentFilter !== 'all') {
+    if ([
+      'family_office', 'ypo_eo', 'racing_yacht', 'shareholder', 'gatekeeper',
+      'summit_speaker', 'nri_diaspora', 'art_philanthropy', 'university_trustees',
+      'regulator_authorised', 'private_clubs_golf', 'icij_offshore', 'eu_beneficial_owner',
+      'us_uhni_family_office'
+    ].includes(currentFilter)) {
+      list = list.filter(l => String(l['Segment Tag'] || 'family_office') === currentFilter);
+    } else if (currentFilter === 'uae' || currentFilter === 'dubai') {
+      list = list.filter(l => {
+        const c = String(l['City/Country'] || '').toLowerCase();
+        return c.includes('dubai') || c.includes('abu dhabi') || c.includes('uae') || c.includes('emirates');
+      });
+    } else if (currentFilter === 'saudi') {
+      list = list.filter(l => {
+        const c = String(l['City/Country'] || '').toLowerCase();
+        return c.includes('riyadh') || c.includes('jeddah') || c.includes('khobar') || c.includes('saudi');
+      });
+    } else if (currentFilter === 'mobiles') {
+      list = list.filter(l => {
+        const pt = String(l['Phone Type'] || '');
+        const wa = String(l['WhatsApp Link'] || '');
+        return pt.includes('Mobile') || wa.startsWith('https://wa.me/');
+      });
+    } else {
+      list = list.filter(l => {
+        const c = String(l['City/Country'] || '').toLowerCase();
+        return c.includes(currentFilter);
+      });
+    }
+  }
+
+  // 2. Search query filter
+  if (currentSearch) {
+    list = list.filter(l => {
+      const hay = `${l['First Name']} ${l['Last Name']} ${l['Company']} ${l['Phone Number']} ${l['Email']} ${l['City/Country']} ${l['Role']} ${l['Phone Type'] || ''} ${l['Carrier'] || ''} ${l['Wealth Signal'] || ''} ${l['Pitch Angle'] || ''} ${l['NRI Corridor'] || ''}`.toLowerCase();
+      return hay.includes(currentSearch);
+    });
+  }
+
+  filteredData = list;
+  if (shouldRerender) {
+    renderTable();
   }
 }
 
@@ -1683,57 +1879,19 @@ function updateHeaderCounts() {
 }
 
 function onSearchInput(inputEl) {
-  const val = inputEl.value.toLowerCase().trim();
+  currentSearch = inputEl.value.toLowerCase().trim();
   const topIn = document.getElementById('topSearchInput');
   const actIn = document.getElementById('activitySearchInput');
-  if (topIn) topIn.value = val;
-  if (actIn) actIn.value = val;
+  if (topIn && topIn !== inputEl) topIn.value = inputEl.value;
+  if (actIn && actIn !== inputEl) actIn.value = inputEl.value;
 
-  if (!val) {
-    filteredData = leadsData;
-  } else {
-    filteredData = leadsData.filter(l => {
-      const hay = `${l['First Name']} ${l['Last Name']} ${l['Company']} ${l['Phone Number']} ${l['Email']} ${l['City/Country']} ${l['Role']} ${l['Phone Type'] || ''} ${l['Carrier'] || ''} ${l['Wealth Signal'] || ''} ${l['Pitch Angle'] || ''}`.toLowerCase();
-      return hay.includes(val);
-    });
-  }
-  renderTable();
+  applyActiveFiltersAndSearch(true);
 }
 
 function filterByDropdown(val) {
-  if (val === 'all') {
-    filteredData = leadsData;
-  } else if ([
-    'family_office', 'ypo_eo', 'racing_yacht', 'shareholder', 'gatekeeper',
-    'summit_speaker', 'nri_diaspora', 'art_philanthropy', 'university_trustees',
-    'regulator_authorised', 'private_clubs_golf', 'icij_offshore', 'eu_beneficial_owner',
-    'us_uhni_family_office'
-  ].includes(val)) {
-    filteredData = leadsData.filter(l => String(l['Segment Tag'] || 'family_office') === val);
-  } else if (val === 'uae' || val === 'dubai') {
-    filteredData = leadsData.filter(l => {
-      const c = String(l['City/Country'] || '').toLowerCase();
-      return c.includes('dubai') || c.includes('abu dhabi') || c.includes('uae') || c.includes('emirates');
-    });
-  } else if (val === 'saudi') {
-    filteredData = leadsData.filter(l => {
-      const c = String(l['City/Country'] || '').toLowerCase();
-      return c.includes('riyadh') || c.includes('jeddah') || c.includes('khobar') || c.includes('saudi');
-    });
-  } else if (val === 'mobiles') {
-    filteredData = leadsData.filter(l => {
-      const pt = String(l['Phone Type'] || '');
-      const wa = String(l['WhatsApp Link'] || '');
-      return pt.includes('Mobile') || wa.startsWith('https://wa.me/');
-    });
-  } else {
-    filteredData = leadsData.filter(l => {
-      const c = String(l['City/Country'] || '').toLowerCase();
-      return c.includes(val);
-    });
-  }
-  renderTable();
-  showToast(`Filtered by: ${val.toUpperCase()} (${filteredData.length} leads)`);
+  currentFilter = val;
+  applyActiveFiltersAndSearch(true);
+  showToast(`Filtered: ${val.toUpperCase()} (${filteredData.length} leads)`);
 }
 
 function filterByTag(tag, el) {
@@ -1963,6 +2121,135 @@ async function executeMinerTrigger() {
     }
   } catch(e) {
     showToast("Miner run dispatched in background!");
+  }
+}
+
+// Google Sheets CRM & Real-Time Sync Handlers
+function toggleGoogleSheetModal() {
+  const m = document.getElementById('googleSheetModal');
+  if (!m) return;
+  m.style.display = (m.style.display === 'flex') ? 'none' : 'flex';
+  if (m.style.display === 'flex') {
+    checkGoogleSheetStatus();
+  }
+}
+
+function toggleGsGuide() {
+  const g = document.getElementById('gsGuideSection');
+  if (!g) return;
+  g.style.display = (g.style.display === 'none') ? 'block' : 'none';
+}
+
+async function checkGoogleSheetStatus() {
+  try {
+    const res = await fetch('/api/google-sheet/config');
+    const data = await res.json();
+    const input = document.getElementById('gsWebhookUrlInput');
+    const title = document.getElementById('gsStatusTitle');
+    const desc = document.getElementById('gsStatusDesc');
+    const banner = document.getElementById('gsStatusBanner');
+    const icon = document.getElementById('gsStatusIcon');
+
+    if (data.webhook_url && input && !input.value) {
+      input.value = data.webhook_url;
+    }
+
+    if (data.configured) {
+      isGoogleSheetConnected = true;
+      if (title) title.textContent = "Google Sheets Real-Time Sync Active";
+      if (desc) desc.textContent = "Every newly discovered lead automatically pushes to your Google Sheet without overwriting call notes!";
+      if (banner) {
+        banner.style.background = "#ECFDF5";
+        banner.style.borderColor = "#A7F3D0";
+      }
+      if (icon) {
+        icon.className = "fa-solid fa-circle-check";
+        icon.style.color = "#059669";
+      }
+    } else {
+      isGoogleSheetConnected = false;
+      if (title) title.textContent = "Google Sheets Not Connected";
+      if (desc) desc.textContent = "Paste your Google Apps Script Web App URL below to reflect leads in real-time.";
+      if (banner) {
+        banner.style.background = "#FFFBEB";
+        banner.style.borderColor = "#FDE68A";
+      }
+      if (icon) {
+        icon.className = "fa-solid fa-triangle-exclamation";
+        icon.style.color = "#D97706";
+      }
+    }
+  } catch (e) {
+    console.error("Error checking Google Sheet config:", e);
+  }
+}
+
+async function saveGoogleSheetConfig() {
+  const input = document.getElementById('gsWebhookUrlInput');
+  const url = (input ? input.value : '').trim();
+  showToast("Testing Google Sheet Webhook connection...");
+
+  try {
+    const res = await fetch('/api/google-sheet/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhook_url: url })
+    });
+    const d = await res.json();
+    if (d && d.configured) {
+      showToast("🟢 Google Sheet Webhook saved & connected successfully!");
+    } else {
+      showToast("Webhook URL saved.");
+    }
+    await checkGoogleSheetStatus();
+  } catch (e) {
+    showToast("Error saving Webhook URL: " + e.message);
+  }
+}
+
+async function triggerFullGoogleSheetSync() {
+  const btn = document.getElementById('btnSyncAllLeads');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Syncing ${leadsData.length} leads to Google Sheet...</span>`;
+  }
+  showToast(`Pushing all ${leadsData.length} leads to Google Sheet CRM...`);
+
+  try {
+    const res = await fetch('/api/google-sheet/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    const d = await res.json();
+    if (d && d.success) {
+      showToast(`✅ Synced ${d.total_leads_sent} leads to Google Sheet! (${d.added} added, ${d.updated} enriched)`);
+    } else {
+      showToast(`Sync completed with response: ${d.message || d.error || 'Done'}`);
+    }
+  } catch (e) {
+    showToast("Sync error: " + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Push All Leads to Google Sheet Now</span>`;
+    }
+    await checkGoogleSheetStatus();
+  }
+}
+
+async function copyGoogleAppsScriptCode() {
+  try {
+    const res = await fetch('/api/google-sheet/code');
+    const data = await res.json();
+    if (data && data.code) {
+      await navigator.clipboard.writeText(data.code);
+      showToast("📋 Copied complete Code.gs to clipboard! Paste into Google Apps Script editor.");
+    } else {
+      showToast("Could not load script code.");
+    }
+  } catch (e) {
+    showToast("Error copying code: " + e.message);
   }
 }
 </script>
