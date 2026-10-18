@@ -33,10 +33,18 @@ async function loadLeads() {{
     if (res.ok) {{
       const data = await res.json();
       if (data && data.leads && data.leads.length > 0) {{
+        const isCountChanged = data.leads.length !== leadsData.length;
         leadsData = data.leads;
-        filteredData = leadsData;
         updateHeaderCounts();
-        renderTable();
+        const syncEl = document.getElementById('headerSyncText');
+        if (syncEl) {{
+          const now = new Date();
+          const timeStr = now.toLocaleTimeString([], {{ hour: '2-digit', minute: '2-digit', second: '2-digit' }});
+          syncEl.textContent = `Live Sync (${{leadsData.length}} Leads) • ${{timeStr}}`;
+        }}
+        const gsBadge = document.getElementById('gsSyncBadge');
+        if (gsBadge) gsBadge.textContent = `${{leadsData.length}} Leads`;
+        applyActiveFiltersAndSearch(isCountChanged);
         return;
       }}
     }}
@@ -44,32 +52,14 @@ async function loadLeads() {{
     // Standalone static mode (Netlify / Vercel / GitHub Pages)
   }}
   leadsData = EMBEDDED_LEADS;
-  filteredData = leadsData;
   updateHeaderCounts();
-  renderTable();
+  const syncEl = document.getElementById('headerSyncText');
+  if (syncEl) syncEl.textContent = `Offline Dataset (${{leadsData.length}} Leads)`;
+  applyActiveFiltersAndSearch(true);
 }}"""
 
-target_load = """async function loadLeads() {
-  try {
-    const res = await fetch('/api/leads');
-    const data = await res.json();
-    if (data && data.leads) {
-      leadsData = data.leads;
-      filteredData = leadsData;
-      updateHeaderCounts();
-      renderTable();
-    }
-  } catch(e) {
-    console.error("Error fetching leads:", e);
-  }
-}"""
-
-if target_load in html:
-    html = html.replace(target_load, embedded_snippet)
-else:
-    print("[!] Target loadLeads function not found exactly as string, attempting regex substitution")
-    import re
-    html = re.sub(r'async function loadLeads\(\)\s*\{[\s\S]*?console\.error\("Error fetching leads:", e\);\s*\}\s*\}', embedded_snippet, html)
+import re
+html = re.sub(r'async function loadLeads\(\)\s*\{[\s\S]*?console\.error\("Error fetching leads:", e\);\s*\}\s*\}', embedded_snippet, html)
 
 # 2. Client-side standalone CSV export (works without Python backend on Netlify)
 standalone_csv = """function exportCSV() {
