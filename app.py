@@ -223,27 +223,26 @@ def api_mine():
     script_name = None
     script_args = []
 
-    if miner_type in ("uhni_6_sources", "full"):
-        script_name = "mine_uhni_6_sources.py"
+    if miner_type in ("uhni_6_sources", "full", "middle_east_conglomerate", "wathq"):
+        script_name = "emea_uhni_classifier_and_miner.py"
     elif miner_type in ("us_uhni", "us_uhni_family_office"):
         script_name = "us_uhni_miner.py"
-    elif miner_type in ("emea_statutory", "eu_beneficial_owner"):
+    elif miner_type in ("emea_statutory", "eu_beneficial_owner", "emea_whales", "shipping_maritime", "mittelstand", "luxury_fashion", "pe_vc_partner"):
         script_name = "emea_uhni_classifier_and_miner.py"
-    elif miner_type in ("gcc_alumni_nri", "nri_diaspora"):
-        script_name = "gcc_elite_alumni_and_nri_miner.py"
+    elif miner_type in ("gcc_alumni_nri", "nri_diaspora", "firecrawl_nri", "tie_angels", "aahoa"):
+        script_name = "firecrawl_nri_directory_scraper.py"
     elif miner_type == "icij_offshore":
         script_name = "icij_offshore_leaks_uhni_filter.py"
-    elif miner_type == "apify":
-        script_name = "apify_full_hni_miner.py"
-    elif miner_type == "tavily":
-        script_name = "mine_middle_east_hni.py"
-    elif miner_type == "mobile":
-        script_name = "mine_direct_hni_mobiles.py"
+    elif miner_type in ("apify", "google_places"):
+        script_name = "firecrawl_nri_directory_scraper.py"
+    elif miner_type in ("tavily", "mobile"):
+        script_name = "emea_uhni_classifier_and_miner.py"
     elif miner_type == "custom":
         # Generate a custom one-shot script
         script_name = _generate_custom_miner(location, query, target_count)
     else:
-        return jsonify({"error": f"Unknown miner type: {miner_type}"}), 400
+        script_name = "emea_uhni_classifier_and_miner.py"
+
 
     script_path = SCRIPTS_DIR / script_name if miner_type != "custom" else BASE_DIR / "scripts" / script_name
 

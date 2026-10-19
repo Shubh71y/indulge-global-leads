@@ -1488,20 +1488,22 @@ tr:hover td {
         <div class="activity-search-row">
           <div class="activity-tags-row" style="width: 100%; flex-wrap: wrap;">
             <div class="activity-tag dot-tag active-tag" onclick="filterByTag('all', this)">All Global UHNIs</div>
+            <div class="activity-tag" onclick="filterByTag('shipping_maritime', this)">🚢 Shipping & Maritime (Greece/Cyprus/Monaco)</div>
+            <div class="activity-tag" onclick="filterByTag('mittelstand', this)">🇩🇪 Mittelstand Industrial (Inhaber/GmbH)</div>
+            <div class="activity-tag" onclick="filterByTag('luxury_fashion', this)">🇫🇷 Luxury & Fashion Dynasties</div>
+            <div class="activity-tag" onclick="filterByTag('pe_vc_partner', this)">💼 PE & VC Carry Whales</div>
+            <div class="activity-tag" onclick="filterByTag('real_estate_holding', this)">🏛️ Real Estate Holding SPVs</div>
+            <div class="activity-tag" onclick="filterByTag('wathq_signatory', this)">🇸🇦 Saudi Wathq Signatories (CR)</div>
+            <div class="activity-tag" onclick="filterByTag('middle_east_conglomerate', this)">🌍 Gulf Conglomerates & Sovereign</div>
+            <div class="activity-tag" onclick="filterByTag('real_estate_developer', this)">🏙️ GCC Super-Prime Developers</div>
+            <div class="activity-tag" onclick="filterByTag('nri_diaspora', this)">🇮🇳 NRI 5-Corridor Whales</div>
             <div class="activity-tag" onclick="filterByTag('us_uhni_family_office', this)">🇺🇸 US SEC 13F / Silicon Valley</div>
-            <div class="activity-tag" onclick="filterByTag('eu_beneficial_owner', this)">🇪🇺 Europe PSC / Zefix / Pappers</div>
-            <div class="activity-tag" onclick="filterByTag('nri_diaspora', this)">🇮🇳 NRI Diaspora / TiE / IBPC</div>
-            <div class="activity-tag" onclick="filterByTag('family_office', this)">🏛️ DIFC/ADGM SFOs</div>
+            <div class="activity-tag" onclick="filterByTag('eu_beneficial_owner', this)">🇪🇺 European SFO & Zefix Vault</div>
             <div class="activity-tag" onclick="filterByTag('racing_yacht', this)">✈️ Jets, Yachts & Polo</div>
             <div class="activity-tag" onclick="filterByTag('gatekeeper', this)">🔑 Private Office & Gatekeepers</div>
-            <div class="activity-tag" onclick="filterByTag('art_philanthropy', this)">🎨 Art & Al Jalila Patrons</div>
-            <div class="activity-tag" onclick="filterByTag('university_trustees', this)">🎓 AUC / AUB / Koç Trustees</div>
-            <div class="activity-tag" onclick="filterByTag('regulator_authorised', this)">🏛️ DFSA / CMA SEOs</div>
+            <div class="activity-tag" onclick="filterByTag('art_philanthropy', this)">🎨 Art & Museum Patrons</div>
             <div class="activity-tag" onclick="filterByTag('ypo_eo', this)">🏆 YPO / EO / Capital Club</div>
-            <div class="activity-tag" onclick="filterByTag('summit_speaker', this)">🎤 FII / ADFW Speakers</div>
-            <div class="activity-tag" onclick="filterByTag('shareholder', this)">📈 Tadawul / DFM</div>
-            <div class="activity-tag" onclick="filterByTag('private_clubs_golf', this)">⛳ Golf & Yacht Clubs</div>
-            <div class="activity-tag" onclick="filterByTag('mobiles', this)">📱 VIP Mobiles</div>
+            <div class="activity-tag" onclick="filterByTag('mobiles', this)">📱 VIP Direct Mobiles</div>
           </div>
         </div>
 
@@ -1633,12 +1635,11 @@ tr:hover td {
     <div class="modal-field">
       <label>High-Net-Worth Registry Source</label>
       <select class="modal-select" id="minerSourceTypeInput">
-        <option value="gcc_alumni_nri">🇮🇳 5-Corridor, 10-Source Global NRI HNI Engine (Indiaspora / TiE / AAHOA / AAPI / AIF / SEBI DRHP / UK PSC / AWDC)</option>
-        <option value="us_uhni">🇺🇸 United States SEC Form 13F Family Offices, Silicon Valley & Indiaspora/TiE</option>
-        <option value="emea_statutory">🇪🇺 Europe Statutory Beneficial Ownership (UK PSC / Zefix / Pappers / Handelsregister / Monaco RCI)</option>
-        <option value="uhni_6_sources">🏛️ Middle East 7-Pillar UHNI Registries (DIFC/ADGM + NRI + Jets/Yachts/Polo + DFSA/CMA + Art/Trustees)</option>
-        <option value="mobile">📱 VIP Direct Mobile OSINT Engine (120-Char Proximity)</option>
-        <option value="custom">🎯 Custom Targeted Wealth Query</option>
+        <option value="emea_statutory">🇪🇺 Europe Priority S Whales & Priority A Dynasties (Shipping / Mittelstand / Luxury / PE-VC / Zefix)</option>
+        <option value="uhni_6_sources">🌍 Middle East Priority S Conglomerates & Saudi Wathq Signatories (developer.wathq.sa / DIFC)</option>
+        <option value="gcc_alumni_nri">🇮🇳 5-Corridor Global NRI HNI Engine via Firecrawl & Apify (Indiaspora / TiE / AAHOA / Forbes ME)</option>
+        <option value="us_uhni">🇺🇸 United States SEC Form 13F Single Family Offices & Silicon Valley Whales</option>
+        <option value="custom">⚡ Live AI Web Deep-Search & Scraping (Firecrawl + Apify Google Places)</option>
       </select>
     </div>
 
@@ -1854,7 +1855,9 @@ function applyActiveFiltersAndSearch(shouldRerender = true) {
       'family_office', 'ypo_eo', 'racing_yacht', 'shareholder', 'gatekeeper',
       'summit_speaker', 'nri_diaspora', 'art_philanthropy', 'university_trustees',
       'regulator_authorised', 'private_clubs_golf', 'icij_offshore', 'eu_beneficial_owner',
-      'us_uhni_family_office'
+      'us_uhni_family_office', 'shipping_maritime', 'mittelstand', 'luxury_fashion',
+      'pe_vc_partner', 'real_estate_holding', 'wathq_signatory', 'middle_east_conglomerate',
+      'real_estate_developer', 'sovereign_linked', 'art_collectibles', 'professional_services'
     ].includes(currentFilter)) {
       list = list.filter(l => String(l['Segment Tag'] || 'family_office') === currentFilter);
     } else if (currentFilter === 'uae' || currentFilter === 'dubai') {
@@ -1989,6 +1992,17 @@ function renderTable() {
       'university_trustees': 'background: #E0F2FE; color: #075985; border: 1px solid #BAE6FD;',
       'regulator_authorised': 'background: #F1F5F9; color: #0F172A; border: 1px solid #CBD5E1;',
       'private_clubs_golf': 'background: #CCFBF1; color: #115E59; border: 1px solid #99F6E4;',
+      'shipping_maritime': 'background: #E0F2FE; color: #0369A1; border: 1px solid #7DD3FC;',
+      'mittelstand': 'background: #FEF9C3; color: #854D0E; border: 1px solid #FDE047;',
+      'luxury_fashion': 'background: #FDF2F8; color: #9D174D; border: 1px solid #FBCFE8;',
+      'pe_vc_partner': 'background: #EDE9FE; color: #5B21B6; border: 1px solid #DDD6FE;',
+      'real_estate_holding': 'background: #ECFDF5; color: #047857; border: 1px solid #A7F3D0;',
+      'wathq_signatory': 'background: #ECFDF5; color: #065F46; border: 1px solid #6EE7B7;',
+      'middle_east_conglomerate': 'background: #FFFBEB; color: #B45309; border: 1px solid #FCD34D;',
+      'real_estate_developer': 'background: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0;',
+      'sovereign_linked': 'background: #F5F3FF; color: #6D28D9; border: 1px solid #C4B5FD;',
+      'eu_beneficial_owner': 'background: #EEF2FF; color: #3730A3; border: 1px solid #C7D2FE;',
+      'us_uhni_family_office': 'background: #EFF6FF; color: #1E40AF; border: 1px solid #BFDBFE;',
     };
     const signalStyle = badgeColorMap[segmentTag] || badgeColorMap['family_office'];
 

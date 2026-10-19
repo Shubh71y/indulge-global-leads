@@ -22,7 +22,11 @@ import re
 import requests
 from urllib.parse import urlparse
 
-import env_loader
+try:
+    import env_loader
+except ImportError:
+    from scripts import env_loader
+
 
 try:
     import phonenumbers
